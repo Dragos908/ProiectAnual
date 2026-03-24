@@ -1,0 +1,610 @@
+import 'package:flutter/material.dart';
+
+class AppLocalizations {
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+  _AppLocalizationsDelegate();
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
+
+  final Map<String, String> _localizedStrings;
+
+  AppLocalizations(this._localizedStrings);
+
+  String translate(String key) {
+    return _localizedStrings[key] ?? key;
+  }
+
+  // Metode helper pentru texte comune
+  String get appTitle => translate('appTitle');
+  String get settings => translate('settings');
+  String get save => translate('save');
+  String get cancel => translate('cancel');
+  String get close => translate('close');
+  String get theme => translate('theme');
+  String get language => translate('language');
+  String get lightMode => translate('lightMode');
+  String get darkMode => translate('darkMode');
+  String get myOrders => translate('myOrders');
+  String get allOrders => translate('allOrders');
+  String get approval => translate('approval');
+  String get statistics => translate('statistics');
+  String get newOrder => translate('newOrder');
+  String get logout => translate('logout');
+  String get invalidTOTP => translate('invalidTOTP');
+  String get inviteCodeGenerated => translate('inviteCodeGenerated');
+  String get codeCopied => translate('codeCopied');
+  String get orderAdded => translate('orderAdded');
+  String get statusUpdated => translate('statusUpdated');
+  String get orderUpdated => translate('orderUpdated');
+  String get hours => translate('hours');
+  String get adminPanel => translate('adminPanel');
+  String get generateInviteCode => translate('generateInviteCode');
+  String get generateInviteCodeDescription => translate('generateInviteCodeDescription');
+  String get generatingCode => translate('generatingCode');
+  String get generateWithTOTP => translate('generateWithTOTP');
+  String get userStatistics => translate('userStatistics');
+  String get noPendingOrders => translate('noPendingOrders');
+  String get pendingOrdersCount => translate('pendingOrdersCount');
+  String get approveRejectOrders => translate('approveRejectOrders');
+  String get nucomenzi => translate('nucomenzi');
+  String get initializing => translate('initializing');
+  String get checkingConnection => translate('checkingConnection');
+  String get noInternetConnection => translate('noInternetConnection');
+  String get redirecting => translate('redirecting');
+  String get checkingAuth => translate('checkingAuth');
+  String get emailNotVerified => translate('emailNotVerified');
+  String get loadingData => translate('loadingData');
+  String get missingData => translate('missingData');
+  String get welcome => translate('welcome');
+  String get connectionError => translate('connectionError');
+}
+
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => ['ro', 'ru'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    final Map<String, String> localizedStrings;
+
+    switch (locale.languageCode) {
+      case 'ru':
+        localizedStrings = _ruLocalizedStrings;
+        break;
+      case 'ro':
+      default:
+        localizedStrings = _roLocalizedStrings;
+    }
+
+    return AppLocalizations(localizedStrings);
+  }
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+
+  static final Map<String, String> _roLocalizedStrings = {
+    'simpleUser': 'Utilizator Simplu',
+    'operator': 'Operator',
+    'admin': 'Administrator',
+    'appTitle': 'Sistem de comandă',
+    'login': 'Autentificare',
+    'logout': 'Deconectare',
+    'settings': 'Setări',
+    'save': 'Salvează',
+    'cancel': 'Anulează',
+    'close': 'Închide',
+    'theme': 'Temă',
+    'language': 'Limbă',
+    'lightMode': 'Mod Lumină',
+    'darkMode': 'Mod Întuneric',
+    'myOrders': 'Comenzile Mele',
+    'allOrders': 'Toate Comenzile',
+    'approval': 'Aprobare',
+    'statistics': 'Statistici',
+    'newOrder': 'Comandă Nouă',
+    'licensePlate': 'Număr Înmatriculare',
+    'object': 'Obiect',
+    'date': 'Dată',
+    'time': 'Oră',
+    'notes': 'Notițe',
+    'urgent': 'Urgent',
+    'pending': 'În Așteptare',
+    'approved': 'Aprobat',
+    'completed': 'Finalizat',
+    'rejected': 'Respins',
+    'search': 'Căutare',
+    'filters': 'Filtre',
+    'advancedFilters': 'Filtre Avansate',
+    'fromDate': 'De la data',
+    'toDate': 'Până la data',
+    'fromTime': 'De la ora',
+    'toTime': 'Până la ora',
+    'username': 'Utilizator',
+    'user': 'Utilizator',
+    'all': 'Toate',
+    'clearFilters': 'Șterge Filtrele',
+    'mechanismType': 'Tip Mecanism',
+    'units': 'Unități',
+    'addMechanism': 'Adaugă Mecanism',
+    'photos': 'Poze',
+    'addPhoto': 'Adaugă Poză',
+    'takePicture': 'Fă o Poză',
+    'orderDetails': 'Detalii Comandă',
+    'editOrder': 'Editare Comandă',
+    'addOrder': 'Adaugă Comandă',
+    'delete': 'Șterge',
+    'confirm': 'Confirmă',
+    'requiredField': 'Câmp obligatoriu',
+    'invalidFormat': 'Format invalid',
+    'allStatus': 'Toate Stările',
+
+    // Settings and theme
+    'romanian': 'Română',
+    'russian': 'Rusă',
+
+    'hours': 'ore',
+
+    // Admin panel
+    'adminPanel': 'Panou Administrator',
+    'generateInviteCode': 'Generează Cod Invitație',
+    'inviteCode': 'Cod Invitație',
+    'expires': 'Expiră',
+    'generateWithTOTP': 'Generează cu TOTP',
+    'copyCode': 'Copiază Cod',
+    'totpVerification': 'Verificare TOTP',
+    'enterTOTP': 'Introdu codul din Google Authenticator',
+    'expectedCode': 'Cod așteptat (DEMO)',
+    'totpCode': 'Cod TOTP',
+    'verify': 'Verifică',
+    'generatingCode': 'Se generează codul...',
+
+    // Mechanism types
+    'engine': 'Motor',
+    'pump': 'Pompă',
+    'transmission': 'Transmisie',
+
+    // Success messages
+    'invalidTOTP': 'Cod TOTP invalid!',
+    'inviteCodeGenerated': 'Cod invitație generat cu succes!',
+    'codeCopied': 'Cod copiat în clipboard!',
+    'orderAdded': 'Comandă adăugată cu succes!',
+    'statusUpdated': 'Status actualizat!',
+    'orderUpdated': 'Comandă actualizată!',
+
+    'generateInviteCodeDescription': 'Generează un cod pentru a permite altor persoane să se înregistreze în aplicație.',
+    'userStatistics': 'Statistici Utilizatori',
+
+    'pendingOrdersCount': 'comenzi în așteptare',
+    'approveRejectOrders': 'Aprobă sau respinge comenzile',
+    'noPendingOrders': 'Nu există comenzi în așteptare',
+
+    'nucomenzi': 'Nu s-au găsit comenzi',
+
+    'generalStatistics': 'Statistici Generale',
+    'orderStatusDistribution': 'Distribuție Status Comenzi',
+
+    'pdfTab': 'PDF',
+    'status': 'Status',
+    'dateRange': 'Interval dată',
+    'selectDateRange': 'Selectează interval',
+    'generateAllPdfs': 'Generează toate PDF-urile',
+    'noMatchingOrders': 'Nu există comenzi care să se potrivească',
+    'mechanisms': 'Mecanisme',
+    'previewPdf': 'Previzualizare PDF',
+    'downloadPdf': 'Descarcă PDF',
+
+    //approval_card
+    'rejectOrder': 'Respinge comanda',
+    'confirmRejectOrder': 'Ești sigur că vrei să respingi comanda?',
+    'reject': 'Respinge',
+    'approve': 'Aprobă',
+    'workHours': 'Ore de lucru',
+
+    //approval_form
+    'fillAllFields': 'Completează toate câmpurile obligatorii pentru toate mecanismele',
+    'fillMechanismData': 'Completează datele mecanismelor',
+    'selectTime': 'Selectează ora',
+    'peregon': 'Peregon',
+    'yes': 'DA',
+    'no': 'NU',
+
+    //filters_card
+    'searchHint': 'Caută după obiect, note sau tip mecanism...',
+    'selectDate': 'Selectează dată',
+
+    //order_card
+    'noMechanisms': 'Fără mecanisme',
+    'mechanismsShort': 'mecanizme',
+    'more': 'mai mult',
+
+    //orde_form_bottom_sheet
+    'objectExample': 'ex: Livada de mere',
+    'enterObjectName': 'Introdu denumirea obiectului',
+    'photosOptional': 'Poze (opțional)',
+    'photo': 'Poza',
+    'mechanismTypes': 'Tipuri de mecanisme',
+    'mechTypeHint': 'ex: Motor, Transmisie',
+    'selectHours': 'Selectează orele',
+    'edit': 'Editează',
+    'urgentOrderSubtitle': 'Afișează comanda ca fiind prioritară',
+    'optional': 'opțional',
+
+    // Mesaje de eroare
+    'fillTypeUnitsHours': 'Completează tipul, numărul de unități și orele',
+    'unitsGreaterThanZero': 'Numărul de unități trebuie să fie mai mare decât 0',
+    'hoursGreaterThanZero': 'Numărul de ore trebuie să fie mai mare decât 0',
+    'addAtLeastOneMechanism': 'Trebuie să adaugi cel puțin un tip de mecanism',
+
+    'chooseSource': 'Alege Sursa',
+    'scanDocument': 'Scanează Document',
+    'detectEdges': 'Detectare margini (PDF/Poză)',
+    'pickGallery': 'Alege din Galerie',
+    'noteHint': 'ex: notă importantă!',
+    'addMechanismOrPhotoError': 'Adaugă cel puțin un mecanism SAU o poză!',
+    'fillRequiredFields': 'Te rog completează câmpurile obligatorii!',
+
+    'urgentOrder': 'Comandă Urgentă',
+    'invalidMinutes': 'Minutele trebuie să fie între 00 și 59!',
+
+    'secureApproval': 'Aprobare Securizată',
+    'approveSecure': 'Aprobă Secur',
+
+    // Filtre noi - ADĂUGATE
+    'searchObject': 'Caută obiect/comandă',
+    'allCommands': 'Toate comenzile',
+    'onlyUrgent': 'Doar urgente',
+    'onlyNonUrgent': 'Doar non-urgente',
+    'creator': 'Creator',
+    'allCreators': 'Toți creatorii',
+    'allObjects': 'Toate obiectele',
+    'allMechanismTypes': 'Toate tipurile',
+    'priority': 'Prioritate',
+    'number': 'Nr.',
+    'selectAll': 'Selectează toate ({count})',
+    'deselectAll': 'Deselectează toate',
+    'generatePdf': 'Generează PDF',
+    'generatedPdf': 'PDF generat',
+    'pdfError': 'Eroare la generarea PDF',
+    'previewError': 'Eroare la previzualizare: {error}',
+    'noOrdersSelected': 'Nu au fost selectate comenzi',
+    'totalOrders': 'Total comenzi',
+    'totalMechanisms': 'Total mecanisme',
+
+    "searchMechanismOrder": "Caută mecanism/comandă",
+    "pdf": "PDF",
+    "generatedDocumentsInSinglePdf": "Generate {count} documente într-un singur PDF",
+    "pdfGeneratedFor": "PDF generat pentru {name}",
+    "pdfGenerationError": "Eroare la generarea PDF: {error}",
+    "invalidOrderNoId": "Invalid order fara ID",
+
+    'account': 'Cont',
+
+    'initializing': 'Inițializare...',
+    'checkingConnection': 'Verificare conexiune...',
+    'noInternetConnection': 'Fără conexiune la internet',
+    'redirecting': 'Redirecționare...',
+    'checkingAuth': 'Verificare autentificare...',
+    'emailNotVerified': 'Email neverificat',
+    'loadingData': 'Încărcare date...',
+    'missingData': 'Date lipsă',
+    'welcome': 'Bun venit!',
+    'connectionError': 'Eroare de conectare',
+
+    'mfaRequired': 'Verificare MFA Necesară',
+    'mfaDescription': 'Această operațiune necesită verificare multi-factor pentru securitate sporită.',
+    'mfaInstructions': 'Apăsați "Verifică" pentru a confirma identitatea prin MFA.',
+    'mfaVerificationFailed': 'Verificarea MFA a eșuat',
+    'mfaVerified': 'MFA verificat cu succes',
+    'codeOptions': 'Opțiuni Cod',
+    'codeTooShort': 'Codul trebuie să aibă minim 6 caractere',
+    'generate': 'Generează',
+
+    // ─── Modul Adăugare Date (nou) ───────────────────────────────────────────
+    'dataEntry': 'Adăugare Date',
+    'dataEntryPageTitle': 'Adăugare Date',
+    'tabVehicle': 'Vehicul',
+    'tabOperator': 'Operator / Notițe',
+
+    // Fila 1 – Vehicul
+    'vehicleClass': 'Clasă',
+    'vehicleSubclass': 'Subclasă',
+    'vehicleModel': 'Denumire Model',
+    'vehicleTonnage': 'Tonaj / Mărime',
+    'vehicleBase': 'Bază (Locație)',
+    'formaDezvuire': 'Forma Dezvaluire',
+    'locatieBaza': 'Locație Bază',
+    'addVehicle': 'Adaugă Vehicul',
+    'vehicleAddedSuccess': 'Vehiculul a fost adăugat cu succes',
+    'vehicleDuplicateError': 'Vehiculul cu numărul {nr} deja există',
+    'invalidPlateFormat': 'Format invalid (ex: AB-12-XYZ)',
+    'lastAdded': 'Ultima Adăugare',
+    'addedAt': 'Adăugat la',
+    'networkError': 'Eroare de rețea',
+
+    // Fila 2 – Operator
+    'operatorTabDescription': 'Fiecare operator adăugat constituie un grup separat în baza de date.',
+    'operatorName': 'Nume Operator',
+    'operatorNote': 'Notiță',
+    'addOperator': 'Adaugă Operator',
+    'operatorAddedSuccess': 'Operatorul a fost adăugat cu succes',
+
+
+    "statusLaBaza":         "La Baza",
+    "statusInSantier":      "In Santier",
+    "statusLaReparatie":    "La Reparatie",
+    "noVehicles":           "Nu exista vehicule.",
+    "filter":               "Filtru",
+    "filterVehicles":       "Filtreaza tehnica",
+    "applyFilter":          "Aplica filtrul",
+    "class":                "Clasa",
+    "subclass":             "Subclasa",
+    "model":                "Model",
+    "plate":                "Nr. Inmatriculare",
+    "tonnage":              "Tonaj",
+    "yearMade":             "An fabricatie",
+    "chassisSeries":        "Serie sasiu",
+    "observations":         "Observatii",
+    "details":              "Detalii",
+    "operators":            "Operatori",
+    "technicalData":        "Date tehnice",
+    "occupancyCalendar":    "Calendar ocupare",
+    "addPeriod":            "Adauga perioada",
+    "noPeriods":            "Nicio perioada de ocupare.",
+    "noOperators":          "Niciun operator asignat.",
+    "occupancyPeriod":      "Perioada de ocupare",
+    "selectPeriod":         "Selecteaza intervalul",
+    "editVehicle":          "Editeaza tehnica",
+    "editData":             "Editeaza date",
+    "confirmDelete":        "Confirmare stergere",
+    "deleteVehicleMsg":     "Esti sigur ca vrei sa stergi",
+  };
+
+  static final Map<String, String> _ruLocalizedStrings = {
+    'simpleUser': 'Простой Пользователь',
+    'operator': 'Оператор',
+    'admin': 'Администратор',
+    'appTitle': 'Система Заказов',
+    'login': 'Авторизация',
+    'logout': 'Выйти',
+    'settings': 'Настройки',
+    'save': 'Сохранить',
+    'cancel': 'Отмена',
+    'close': 'Закрыть',
+    'theme': 'Тема',
+    'language': 'Язык',
+    'lightMode': 'Светлый режим',
+    'darkMode': 'Тёмный режим',
+    'myOrders': 'Мои Заказы',
+    'allOrders': 'Все Заказы',
+    'approval': 'Утверждение',
+    'statistics': 'Статистика',
+    'newOrder': 'Новый Заказ',
+    'licensePlate': 'Номерной Знак',
+    'object': 'Объект',
+    'date': 'Дата',
+    'time': 'Время',
+    'notes': 'Заметки',
+    'urgent': 'Срочно',
+    'pending': 'В Ожидании',
+    'approved': 'Одобрено',
+    'completed': 'Завершено',
+    'rejected': 'Отклонено',
+    'search': 'Поиск',
+    'filters': 'Фильтры',
+    'advancedFilters': 'Расширенные Фильтры',
+    'fromDate': 'С даты',
+    'toDate': 'По дату',
+    'fromTime': 'С времени',
+    'toTime': 'До времени',
+    'username': 'Пользователь',
+    'user': 'Пользователь',
+    'all': 'Все',
+    'clearFilters': 'Очистить Фильтры',
+    'mechanismType': 'Тип Механизма',
+    'units': 'Единицы',
+    'addMechanism': 'Добавить Механизм',
+    'photos': 'Фотографии',
+    'addPhoto': 'Добавить Фото',
+    'takePicture': 'Сделать Фото',
+    'orderDetails': 'Детали Заказа',
+    'editOrder': 'Редактировать Заказ',
+    'addOrder': 'Добавить Заказ',
+    'delete': 'Удалить',
+    'confirm': 'Подтвердить',
+    'requiredField': 'Обязательное поле',
+    'invalidFormat': 'Неверный формат',
+    'allStatus': 'Все Статусы',
+    'hours': 'часы',
+
+    // Settings and theme
+    'romanian': 'Румынский',
+    'russian': 'Русский',
+
+    // Admin panel
+    'adminPanel': 'Панель Администратора',
+    'generateInviteCode': 'Сгенерировать Код Приглашения',
+    'inviteCode': 'Код Приглашения',
+    'expires': 'Истекает',
+    'generateWithTOTP': 'Сгенерировать с TOTP',
+    'copyCode': 'Скопировать Код',
+    'totpVerification': 'Проверка TOTP',
+    'enterTOTP': 'Введите код из Google Authenticator',
+    'expectedCode': 'Ожидаемый код (ДЕМО)',
+    'totpCode': 'Код TOTP',
+    'verify': 'Проверить',
+    'generatingCode': 'Генерация кода...',
+
+    // Mechanism types
+    'engine': 'Двигатель',
+    'pump': 'Насос',
+    'transmission': 'Трансмиссия',
+
+    // Success messages
+    'invalidTOTP': 'Неверный код TOTP!',
+    'inviteCodeGenerated': 'Код приглашения успешно сгенерирован!',
+    'codeCopied': 'Код скопирован в буфер обмена!',
+    'orderAdded': 'Заказ успешно добавлен!',
+    'statusUpdated': 'Статус обновлен!',
+    'orderUpdated': 'Заказ обновлен!',
+
+    'generateInviteCodeDescription': 'Генерируйте код, чтобы позволить другим людям зарегистрироваться в приложении.',
+    'userStatistics': 'Статистика Пользователей',
+
+    'pendingOrdersCount': 'заказов в ожидании',
+    'approveRejectOrders': 'Одобрите или отклоните заказы',
+    'noPendingOrders': 'Нет заказов в ожидании',
+
+    'nucomenzi': 'Заказы не найдены.',
+
+    'generalStatistics': 'Общая Статистика',
+    'orderStatusDistribution': 'Распределение Статусов Заказов',
+
+    'pdfTab': 'PDF',
+    'status': 'Статус',
+    'dateRange': 'Диапазон дат',
+    'selectDateRange': 'Выберите диапазон',
+    'generateAllPdfs': 'Сгенерировать все PDF',
+    'noMatchingOrders': 'Нет подходящих заказов',
+    'mechanisms': 'Механизмы',
+    'previewPdf': 'Предпросмотр PDF',
+    'downloadPdf': 'Скачать PDF',
+
+    //approval_card
+    'rejectOrder': 'Отклонить заказ',
+    'confirmRejectOrder': 'Вы уверены, что хотите отклонить заказ?',
+    'reject': 'Отклонить',
+    'approve': 'Одобрить',
+    'workHours': 'Рабочие часы',
+
+    //approval_form
+    'fillAllFields': 'Заполните все обязательные поля для всех механизмов',
+    'fillMechanismData': 'Заполните данные механизмов',
+    'selectTime': 'Выберите время',
+    'peregon': 'Перегон',
+    'yes': 'ДА',
+    'no': 'НЕТ',
+
+    //filters_card
+    'searchHint': 'Поиск по объекту, заметкам или типу механизма...',
+    'selectDate': 'Выберите дату',
+
+    //order_card
+    'noMechanisms': 'Без механизмов',
+    'mechanismsShort': 'механизм',
+    'more': 'еще',
+
+    //orde_form_bottom_sheet
+    'objectExample': 'напр: Яблоневый сад',
+    'enterObjectName': 'Введите название объекта',
+    'photosOptional': 'Фотографии (опционально)',
+    'photo': 'Фото',
+    'mechanismTypes': 'Типы механизмов',
+    'mechTypeHint': 'напр: Двигатель, Трансмиссия',
+    'selectHours': 'Выберите часы',
+    'edit': 'Редактировать',
+    'urgentOrderSubtitle': 'Показать заказ как приоритетный',
+    'optional': 'опционально',
+
+    // Mesaje de eroare
+    'fillTypeUnitsHours': 'Заполните тип, количество единиц и часы',
+    'unitsGreaterThanZero': 'Количество единиц должно быть больше 0',
+    'hoursGreaterThanZero': 'Количество часов должно быть больше 0',
+    'addAtLeastOneMechanism': 'Необходимо добавить хотя бы один тип механизма',
+
+    'chooseSource': 'Выберите источник',
+    'scanDocument': 'Сканировать документ',
+    'detectEdges': 'Обнаружение краев (PDF/Фото)',
+    'pickGallery': 'Выбрать из галереи',
+    'noteHint': 'напр: важное примечание!',
+    'addMechanismOrPhotoError': 'Добавьте хотя бы один механизм ИЛИ фото!',
+    'fillRequiredFields': 'Пожалуйста, заполните обязательные поля!',
+    'urgentOrder': 'Срочный заказ',
+    'invalidMinutes': 'Минуты должны быть от 00 до 59!',
+
+    'secureApproval': 'Безопасное одобрение',
+    'approveSecure': 'Одобрить Безопасный',
+
+    // Filtre noi - ADĂUGATE
+    'searchObject': 'Поиск объекта/заказа',
+    'allCommands': 'Все заказы',
+    'onlyUrgent': 'Только срочные',
+    'onlyNonUrgent': 'Только несрочные',
+    'creator': 'Создатель',
+    'allCreators': 'Все создатели',
+    'allObjects': 'Все объекты',
+    'allMechanismTypes': 'Все типы',
+    'priority': 'Приоритет',
+    'number': '№',
+    'selectAll': 'Выбрать все ({count})',
+    'deselectAll': 'Снять выделение',
+    'generatePdf': 'Сгенерировать PDF',
+    'generatedPdf': 'PDF сгенерирован',
+    'pdfError': 'Ошибка генерации PDF',
+    'previewError': 'Ошибка предпросмотра: {error}',
+    'noOrdersSelected': 'Не выбраны заказы',
+    'totalOrders': 'Всего заказов',
+    'totalMechanisms': 'Всего механизмов',
+
+    "searchMechanismOrder": "Поиск механизма/заказа",
+    "pdf": "PDF",
+    "generatedDocumentsInSinglePdf": "Создано {count} документов в одном PDF",
+    "pdfGeneratedFor": "PDF создан для {name}",
+    "pdfGenerationError": "Ошибка генерации PDF: {error}",
+    "invalidOrderNoId": "Недействительный заказ без ID",
+
+    'account': 'Аккаунт',
+
+    'initializing': 'Инициализация...',
+    'checkingConnection': 'Проверка соединения...',
+    'noInternetConnection': 'Нет подключения к интернету',
+    'redirecting': 'Переадресация...',
+    'checkingAuth': 'Проверка авторизации...',
+    'emailNotVerified': 'Email не подтвержден',
+    'loadingData': 'Загрузка данных...',
+    'missingData': 'Данные отсутствуют',
+    'welcome': 'Добро пожаловать!',
+    'connectionError': 'Ошибка подключения',
+
+    'mfaRequired': 'MFA Verification Required',
+    'mfaDescription': 'This operation requires multi-factor verification for enhanced security.',
+    'mfaInstructions': 'Press "Verify" to confirm your identity through MFA.',
+    'mfaVerificationFailed': 'MFA verification failed',
+    'mfaVerified': 'MFA verified successfully',
+    'codeOptions': 'Code Options',
+    'codeTooShort': 'Code must be at least 6 characters',
+    'generate': 'Generate',
+
+    // ─── Modul Adăugare Date (nou) ───────────────────────────────────────────
+    'dataEntry': 'Добавление Данных',
+    'dataEntryPageTitle': 'Добавление Данных',
+    'tabVehicle': 'Транспорт',
+    'tabOperator': 'Оператор / Заметки',
+
+    // Fila 1 – Vehicul
+    'vehicleClass': 'Класс',
+    'vehicleSubclass': 'Подкласс',
+    'vehicleModel': 'Название Модели',
+    'vehicleTonnage': 'Тоннаж / Размер',
+    'vehicleBase': 'База (Местоположение)',
+    'formaDezvuire': 'Форма Раскрытия',
+    'locatieBaza': 'Местоположение Базы',
+    'addVehicle': 'Добавить Транспорт',
+    'vehicleAddedSuccess': 'Транспортное средство успешно добавлено',
+    'vehicleDuplicateError': 'Транспортное средство с номером {nr} уже существует',
+    'invalidPlateFormat': 'Неверный формат (напр: AB-12-XYZ)',
+    'lastAdded': 'Последнее Добавление',
+    'addedAt': 'Добавлено в',
+    'networkError': 'Ошибка сети',
+
+    // Fila 2 – Operator
+    'operatorTabDescription': 'Каждый добавленный оператор составляет отдельную группу в базе данных.',
+    'operatorName': 'Имя Оператора',
+    'operatorNote': 'Заметка',
+    'addOperator': 'Добавить Оператора',
+    'operatorAddedSuccess': 'Оператор успешно добавлен',
+  };
+}

@@ -1,0 +1,40 @@
+name: oiu
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:        # Localizare (ro/ru)
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5+1
+
+  # Firebase
+  firebase_core: ^3.15.2
+  cloud_firestore: ^5.6.0          # minim 5.6.0 pentru Flutter Web
+
+  # PDF
+  pdf: ^3.11.3
+  printing: ^5.14.2
+
+  # Utilități
+  intl: ^0.20.2
+  shared_preferences: ^2.2.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/Roboto-Regular.ttf
