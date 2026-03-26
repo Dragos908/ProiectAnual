@@ -134,7 +134,6 @@ class RezervareService {
       _rezervari
           .where('santierId', isEqualTo: santierId)
           .where('tip', isEqualTo: 'comanda')
-          .where('creatDeUserId', isEqualTo: currentUser.uid)
           .snapshots()
           .map((s) {
         final list = s.docs.map(Rezervare.fromDoc).toList();

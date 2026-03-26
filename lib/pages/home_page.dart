@@ -190,7 +190,6 @@ class _PdfDataWrapper extends StatelessWidget {
 
   Stream<List<Comanda>> get _comenziStream => _db
       .collection('comenzi')
-      .where('creatDeUserId', isEqualTo: currentUser.uid)
       .snapshots()
       .map((s) => s.docs.map(Comanda.fromDoc).toList());
 

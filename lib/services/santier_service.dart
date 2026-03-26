@@ -14,7 +14,6 @@ class SantierService {
       .map((s) => _sorted(s.docs.map(Santier.fromDoc).toList()));
 
   static Stream<List<Santier>> streamByUser(String uid) => _col
-      .where('creatDeUserId', isEqualTo: uid)
       .snapshots()
       .map((s) => _sorted(s.docs.map(Santier.fromDoc).toList()));
 
