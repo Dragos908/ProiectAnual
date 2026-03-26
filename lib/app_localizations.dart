@@ -59,6 +59,78 @@ class AppLocalizations {
   String get missingData => translate('missingData');
   String get welcome => translate('welcome');
   String get connectionError => translate('connectionError');
+  String get santiere => translate('santiere');
+  String get options => translate('options');
+  String get changeName => translate('changeName');
+  String get userName => translate('userName');
+  String get enterName => translate('enterName');
+
+  // Rezervare / Comanda
+  String get vehicleNotFound        => translate('vehicleNotFound');
+  String get intervalSuprapus       => translate('intervalSuprapus');
+  String get searchVehicle          => translate('searchVehicle');
+  String get selectVehicle          => translate('selectVehicle');
+  String get noVehicleSelected      => translate('noVehicleSelected');
+  String get comandaCreated         => translate('comandaCreated');
+  String get comandaDeleted         => translate('comandaDeleted');
+  String get comandaIntervalUpdated => translate('comandaIntervalUpdated');
+  String get overlapError           => translate('overlapError');
+  String get statusPending          => translate('statusPending');
+  String get statusAprobat          => translate('statusAprobat');
+  String get statusRespins          => translate('statusRespins');
+
+  // Santier
+  String get createSantier    => translate('createSantier');
+  String get santierCreated   => translate('santierCreated');
+  String get santierUpdated   => translate('santierUpdated');
+  String get denumire         => translate('denumire');
+  String get locatie          => translate('locatie');
+  String get dataIncepere     => translate('dataIncepere');
+  String get dataFinalizare   => translate('dataFinalizare');
+  String get colorSantier     => translate('colorSantier');
+
+  // Getters for keys already in maps (used across pages)
+  String get eroare           => translate('eroare');
+  String get editSantier      => translate('editSantier');
+  String get reset            => translate('reset');
+  String get perioadaCreare   => translate('perioadaCreare');
+  String get applyFilter      => translate('applyFilter');
+  String get all              => translate('all');
+  String get requiredField    => translate('requiredField');
+  String get dateUnspecified  => translate('dateUnspecified');
+  String get oriceData        => translate('oriceData');
+  String get selectDate       => translate('selectDate');
+  // SantiereListPage
+  String get santiereActivi       => translate('santiereActivi');
+  String get santiereSuspendati   => translate('santiereSuspendati');
+  String get santiereArhivati     => translate('santiereArhivati');
+  String get noSantiere           => translate('noSantiere');
+  String get santierNou           => translate('santierNou');
+  String get loadError            => translate('loadError');
+  String get dateFinalizareError  => translate('dateFinalizareError');
+  String get timeoutError         => translate('timeoutError');
+  String get noEditPermission     => translate('noEditPermission');
+  String get filtruSantiere       => translate('filtruSantiere');
+  String get minThreeChars        => translate('minThreeChars');
+  String get creaza               => translate('creaza');
+
+  // ComandaFormSheet
+  String get selectMecanism          => translate('selectMecanism');
+  String get selectDateTimeStartEnd  => translate('selectDateTimeStartEnd');
+  String get finalAfterStart         => translate('finalAfterStart');
+  String get comandaActualizata      => translate('comandaActualizata');
+  String get comandaTrimisaAprobare  => translate('comandaTrimisaAprobare');
+  String get intervalSuprapusCu      => translate('intervalSuprapusCu');
+  String get rezervatDe              => translate('rezervatDe');
+  String get deleteError             => translate('deleteError');
+  String get mechanismHint           => translate('mechanismHint');
+  String get selectMechanismFromList => translate('selectMechanismFromList');
+  String get mechanismNotFound       => translate('mechanismNotFound');
+  String get calendarLabel           => translate('calendarLabel');
+  String get noteOptional            => translate('noteOptional');
+  String get actualizeaza            => translate('actualizeaza');
+  String get trimiteSpreAprobare     => translate('trimiteSpreAprobare');
+  String get selectDateAndTime       => translate('selectDateAndTime');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
@@ -142,7 +214,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'invalidFormat': 'Format invalid',
     'allStatus': 'Toate Stările',
 
-    // Settings and theme
+    // Settings
     'romanian': 'Română',
     'russian': 'Rusă',
 
@@ -253,7 +325,6 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'secureApproval': 'Aprobare Securizată',
     'approveSecure': 'Aprobă Secur',
 
-    // Filtre noi - ADĂUGATE
     'searchObject': 'Caută obiect/comandă',
     'allCommands': 'Toate comenzile',
     'onlyUrgent': 'Doar urgente',
@@ -303,7 +374,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'codeTooShort': 'Codul trebuie să aibă minim 6 caractere',
     'generate': 'Generează',
 
-    // ─── Modul Adăugare Date (nou) ───────────────────────────────────────────
+    // Modul Adăugare Date
     'dataEntry': 'Adăugare Date',
     'dataEntryPageTitle': 'Adăugare Date',
     'tabVehicle': 'Vehicul',
@@ -362,13 +433,127 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     "confirmDelete":        "Confirmare ștergere",
     "deleteVehicleMsg":     "Ești sigur că vrei să ștergi",
 
-    // Chei folosite în santier_pdf_tab & vehicle_pdf_tab
+    // santier_pdf_tab vehicle_pdf_tab
     "tehnica":              "Tehnică",
     "location":             "Locație",
     "base":                 "Bază",
     "createdBy":            "Creat de",
     "orders":               "Comenzi",
     "startDate":            "Data început",
+
+    // home_page
+    'santiere':             'Șantiere',
+    'options':              'Opțiuni',
+    'changeName':           'Schimbă numele',
+    'userName':             'Nume utilizator',
+    'enterName':            'Introduceți numele...',
+
+    // santier_detail_page
+    'santierNotFound':      'Șantierul nu a fost găsit.',
+    'newComanda':           'Comandă nouă',
+    'editSantier':          'Editează șantier',
+    'eroare':               'Eroare',
+    'noComandaSantier':     'Nicio comandă pentru acest șantier.',
+    'editComanda':          'Editează comanda',
+    'start':                'Start',
+    'end':                  'Final',
+    'createdAt':            'Creat la',
+    'motivRespingere':      'Motiv respingere',
+    'dateUnspecified':      'Dată nespecificată',
+    'activ':                'Activ',
+    'planificat':           'Planificat',
+    'asteptare':            'Așteptare',
+
+    // vehicle_pdf_tab
+    'noVehiclesFound':      'Niciun vehicul găsit.',
+    'searchVehicleHint':    'Caută model / nr. înmatriculare...',
+    'perioadeActive':       'Perioade active',
+    'reset':                'Resetează',
+
+    // comanda_form_sheet
+    'deleteComandaTitle':   'Șterge comanda?',
+    'deleteComandaContent': 'Comanda va fi ștearsă și intervalul eliberat.',
+    'dateTimeStart':        'Data + Ora start',
+    'dateTimeEnd':          'Data + Ora final',
+    'occupied':             'Ocupat',
+    'available':            'Disponibil',
+
+    // occupancy_calendar
+    'noExactTime':          'Fără oră exactă',
+    'reservations':         'Rezervări',
+    'dayShort':             'Zi',
+    'inAsteptare':          'În așteptare',
+    'aprobat':              'Aprobat',
+    'santierFallback':      'Șantier',
+    'jan': 'Ianuarie', 'feb': 'Februarie', 'mar': 'Martie',
+    'apr': 'Aprilie',  'may': 'Mai',       'jun': 'Iunie',
+    'jul': 'Iulie',    'aug': 'August',    'sep': 'Septembrie',
+    'oct': 'Octombrie','nov': 'Noiembrie', 'dec': 'Decembrie',
+
+    // santier_pdf_tab
+    'filterPdf':            'Filtru PDF',
+    'perioadaCreare':       'Perioadă creare',
+    'vehicule':             'Vehicule',
+    'oriceData':            'Orice dată',
+    'statusActiv':          'Activ',
+    'statusSuspendat':      'Suspendat',
+    'statusArhivat':        'Arhivat',
+
+    // rezervare_service / comanda_service
+    'vehicleNotFound':        'Vehiculul nu mai există în baza de date.',
+    'intervalSuprapus':       'Interval suprapus',
+    'searchVehicle':          'Caută vehicul',
+    'selectVehicle':          'Selectează vehiculul',
+    'noVehicleSelected':      'Niciun vehicul selectat',
+    'comandaCreated':         'Comanda a fost creată cu succes.',
+    'comandaDeleted':         'Comanda a fost ștearsă.',
+    'comandaIntervalUpdated': 'Intervalul comenzii a fost actualizat.',
+    'overlapError':           'Vehiculul este deja rezervat în acest interval.',
+    'statusPending':          'În așteptare',
+    'statusAprobat':          'Aprobat',
+    'statusRespins':          'Respins',
+
+    // santier_service
+    'createSantier':    'Crează Șantier',
+    'santierCreated':   'Șantierul a fost creat cu succes.',
+    'santierUpdated':   'Șantierul a fost actualizat.',
+    'denumire':         'Denumire',
+    'locatie':          'Locație',
+    'dataIncepere':     'Data începere',
+    'dataFinalizare':   'Data finalizare',
+    'colorSantier':     'Culoare șantier',
+
+    // santiere_list_page
+    'santiereActivi':      'Activi',
+    'santiereSuspendati':  'Suspendați',
+    'santiereArhivati':    'Arhivați',
+    'noSantiere':          'Nu există șantiere.',
+    'santierNou':          'Șantier nou',
+    'loadError':           'Eroare la încărcare',
+    'dateFinalizareError': 'Data finalizare trebuie să fie >= data începere.',
+    'timeoutError':        'Timeout — verificați conexiunea și încercați din nou.',
+    'noEditPermission':    'Nu ai permisiunea de a edita acest șantier.',
+    'filtruSantiere':      'Filtru șantiere',
+    'minThreeChars':       'Minim 3 caractere.',
+    'creaza':              'Creează',
+
+    // comanda_form_sheet
+    'selectMecanism':          'Selectați un mecanism din lista de sugestii.',
+    'selectDateTimeStartEnd':  'Selectați data+ora de start și final.',
+    'finalAfterStart':         'Data final trebuie să fie după data start.',
+    'comandaActualizata':      'Comanda a fost actualizată.',
+    'comandaTrimisaAprobare':  'Comanda a fost trimisă spre aprobare.',
+    'intervalSuprapusCu':      'Interval suprapus cu rezervarea existentă:',
+    'rezervatDe':              'Rezervat de',
+    'deleteError':             'Eroare la ștergere',
+    'mechanismHint':           'Mecanism (tastați minim 2 caractere)',
+    'selectMechanismFromList': 'Selectați un mecanism din listă.',
+    'mechanismNotFound':       'Mecanismul nu a fost găsit în baza de date.',
+    'calendarLabel':           'Calendar',
+    'noteOptional':            'Note (opțional)',
+    'actualizeaza':            'Actualizează',
+    'trimiteSpreAprobare':     'Trimite spre aprobare',
+    'selectDateAndTime':       'Selectați data și ora',
   };
 
   static final Map<String, String> _ruLocalizedStrings = {
@@ -428,7 +613,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'allStatus': 'Все Статусы',
     'hours': 'часы',
 
-    // Settings and theme
+    // Settings
     'romanian': 'Румынский',
     'russian': 'Русский',
 
@@ -517,7 +702,6 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'urgentOrderSubtitle': 'Показать заказ как приоритетный',
     'optional': 'опционально',
 
-    // Mesaje de eroare
     'fillTypeUnitsHours': 'Заполните тип, количество единиц и часы',
     'unitsGreaterThanZero': 'Количество единиц должно быть больше 0',
     'hoursGreaterThanZero': 'Количество часов должно быть больше 0',
@@ -536,7 +720,6 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'secureApproval': 'Безопасное одобрение',
     'approveSecure': 'Одобрить Безопасный',
 
-    // Filtre noi - ADĂUGATE
     'searchObject': 'Поиск объекта/заказа',
     'allCommands': 'Все заказы',
     'onlyUrgent': 'Только срочные',
@@ -586,7 +769,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'codeTooShort': 'Code must be at least 6 characters',
     'generate': 'Generate',
 
-    // ─── Modul Adăugare Date (nou) ───────────────────────────────────────────
+    // Modul Adăugare Date
     'dataEntry': 'Добавление Данных',
     'dataEntryPageTitle': 'Добавление Данных',
     'tabVehicle': 'Транспорт',
@@ -615,7 +798,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     'addOperator': 'Добавить Оператора',
     'operatorAddedSuccess': 'Оператор успешно добавлен',
 
-    // ─── Vehicule / Tehnică ──────────────────────────────────────────────────
+    //Vehicule / Tehnică
     "statusLaBaza":         "На Базе",
     "statusInSantier":      "На Стройке",
     "statusLaReparatie":    "На Ремонте",
@@ -645,12 +828,126 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
     "confirmDelete":        "Подтверждение удаления",
     "deleteVehicleMsg":     "Вы уверены, что хотите удалить",
 
-    // Chei folosite în santier_pdf_tab & vehicle_pdf_tab
+    // santier_pdf_tab vehicle_pdf_tab
     "tehnica":              "Техника",
     "location":             "Местоположение",
     "base":                 "База",
     "createdBy":            "Создан",
     "orders":               "Заказы",
     "startDate":            "Дата начала",
+
+    // home_page
+    'santiere':             'Стройки',
+    'options':              'Опции',
+    'changeName':           'Изменить имя',
+    'userName':             'Имя пользователя',
+    'enterName':            'Введите имя...',
+
+    // santier_detail_page
+    'santierNotFound':      'Стройка не найдена.',
+    'newComanda':           'Новый заказ',
+    'editSantier':          'Редактировать стройку',
+    'eroare':               'Ошибка',
+    'noComandaSantier':     'Нет заказов для этой стройки.',
+    'editComanda':          'Редактировать заказ',
+    'start':                'Начало',
+    'end':                  'Конец',
+    'createdAt':            'Создано',
+    'motivRespingere':      'Причина отклонения',
+    'dateUnspecified':      'Дата не указана',
+    'activ':                'Активный',
+    'planificat':           'Запланировано',
+    'asteptare':            'В ожидании',
+
+    // vehicle_pdf_tab
+    'noVehiclesFound':      'Транспортных средств не найдено.',
+    'searchVehicleHint':    'Поиск по модели / гос. номеру...',
+    'perioadeActive':       'Активные периоды',
+    'reset':                'Сбросить',
+
+    // comanda_form_sheet
+    'deleteComandaTitle':   'Удалить заказ?',
+    'deleteComandaContent': 'Заказ будет удалён и интервал освобождён.',
+    'dateTimeStart':        'Дата + Время начала',
+    'dateTimeEnd':          'Дата + Время конца',
+    'occupied':             'Занято',
+    'available':            'Доступно',
+
+    // occupancy_calendar
+    'noExactTime':          'Без точного времени',
+    'reservations':         'Резервации',
+    'dayShort':             'День',
+    'inAsteptare':          'В ожидании',
+    'aprobat':              'Одобрен',
+    'santierFallback':      'Стройка',
+    'jan': 'Январь',   'feb': 'Февраль',  'mar': 'Март',
+    'apr': 'Апрель',   'may': 'Май',      'jun': 'Июнь',
+    'jul': 'Июль',     'aug': 'Август',   'sep': 'Сентябрь',
+    'oct': 'Октябрь',  'nov': 'Ноябрь',   'dec': 'Декабрь',
+
+    // santier_pdf_tab
+    'filterPdf':            'Фильтр PDF',
+    'perioadaCreare':       'Период создания',
+    'vehicule':             'Транспорт',
+    'oriceData':            'Любая дата',
+    'statusActiv':          'Активный',
+    'statusSuspendat':      'Приостановлен',
+    'statusArhivat':        'Архивирован',
+
+    // rezervare_service / comanda_service
+    'vehicleNotFound':        'Транспортное средство больше не существует в базе данных.',
+    'intervalSuprapus':       'Перекрывающийся интервал',
+    'searchVehicle':          'Поиск транспорта',
+    'selectVehicle':          'Выберите транспорт',
+    'noVehicleSelected':      'Транспорт не выбран',
+    'comandaCreated':         'Заказ успешно создан.',
+    'comandaDeleted':         'Заказ удалён.',
+    'comandaIntervalUpdated': 'Интервал заказа обновлён.',
+    'overlapError':           'Транспорт уже забронирован в этом интервале.',
+    'statusPending':          'В ожидании',
+    'statusAprobat':          'Одобрен',
+    'statusRespins':          'Отклонён',
+
+    // santier_service
+    'createSantier':    'Создать Стройку',
+    'santierCreated':   'Стройка успешно создана.',
+    'santierUpdated':   'Стройка обновлена.',
+    'denumire':         'Наименование',
+    'locatie':          'Местоположение',
+    'dataIncepere':     'Дата начала',
+    'dataFinalizare':   'Дата завершения',
+    'colorSantier':     'Цвет стройки',
+
+    // santiere_list_page
+    'santiereActivi':      'Активные',
+    'santiereSuspendati':  'Приостановленные',
+    'santiereArhivati':    'Архивированные',
+    'noSantiere':          'Нет строек.',
+    'santierNou':          'Новая стройка',
+    'loadError':           'Ошибка загрузки',
+    'dateFinalizareError': 'Дата завершения должна быть >= даты начала.',
+    'timeoutError':        'Тайм-аут — проверьте соединение и попробуйте снова.',
+    'noEditPermission':    'У вас нет прав на редактирование этой стройки.',
+    'filtruSantiere':      'Фильтр строек',
+    'minThreeChars':       'Минимум 3 символа.',
+    'creaza':              'Создать',
+
+    // comanda_form_sheet
+    'selectMecanism':          'Выберите механизм из списка подсказок.',
+    'selectDateTimeStartEnd':  'Выберите дату+время начала и конца.',
+    'finalAfterStart':         'Дата конца должна быть после даты начала.',
+    'comandaActualizata':      'Заказ обновлён.',
+    'comandaTrimisaAprobare':  'Заказ отправлен на согласование.',
+    'intervalSuprapusCu':      'Пересечение с существующей резервацией:',
+    'rezervatDe':              'Забронировано',
+    'deleteError':             'Ошибка удаления',
+    'mechanismHint':           'Механизм (введите минимум 2 символа)',
+    'selectMechanismFromList': 'Выберите механизм из списка.',
+    'mechanismNotFound':       'Механизм не найден в базе данных.',
+    'calendarLabel':           'Календарь',
+    'noteOptional':            'Заметка (опционально)',
+    'actualizeaza':            'Обновить',
+    'trimiteSpreAprobare':     'Отправить на согласование',
+    'selectDateAndTime':       'Выберите дату и время',
   };
 }

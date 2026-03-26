@@ -1,8 +1,3 @@
-// lib/services/comanda_service.dart
-//
-// Versiune simplificată pentru utilizator simplu (simpleUser).
-// Comenzile sunt create întotdeauna cu status 'pending'.
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/comanda_model.dart';
 import '../models/occupancy_period.dart';
@@ -12,10 +7,6 @@ import 'rezervare_service.dart';
 export 'rezervare_service.dart'
     show RezervareOverlapException, RezervareService, Rezervare, RezervareType,
     RezervareStatus, RezervareStatusX;
-
-// =============================================================================
-// VehicleSearchResult
-// =============================================================================
 
 class VehicleSearchResult {
   final String id;
@@ -54,10 +45,7 @@ class VehicleSearchResult {
   }
 }
 
-// =============================================================================
 // ComenzaService
-// =============================================================================
-
 class ComenzaService {
   static const Duration _timeout = Duration(seconds: 15);
 
@@ -65,10 +53,7 @@ class ComenzaService {
 
   static CollectionReference get _vehicles => _db.collection('vehicles');
 
-  // ---------------------------------------------------------------------------
   // Streams
-  // ---------------------------------------------------------------------------
-
   static Stream<List<Comanda>> comenziStream(
       String santierId, User currentUser) {
     return RezervareService.streamBySantier(santierId, currentUser)
@@ -80,10 +65,7 @@ class ComenzaService {
     return RezervareService.vehicleOccupancyStream(vehicleId);
   }
 
-  // ---------------------------------------------------------------------------
   // Căutare vehicule
-  // ---------------------------------------------------------------------------
-
   static Future<List<VehicleSearchResult>> searchVehicles(
       String query) async {
     if (query.trim().length < 2) return [];
@@ -98,10 +80,7 @@ class ComenzaService {
         .toList();
   }
 
-  // ---------------------------------------------------------------------------
   // Creare comandă
-  // ---------------------------------------------------------------------------
-
   static Future<String> createComanda({
     required String   santierId,
     required String   santierNume,
@@ -150,10 +129,7 @@ class ComenzaService {
     return rezervareId;
   }
 
-  // ---------------------------------------------------------------------------
   // Actualizare interval
-  // ---------------------------------------------------------------------------
-
   static Future<void> updateComandaInterval({
     required Comanda         comanda,
     required OccupancyPeriod oldPeriod,
@@ -178,10 +154,7 @@ class ComenzaService {
     }).timeout(_timeout);
   }
 
-  // ---------------------------------------------------------------------------
   // Ștergere
-  // ---------------------------------------------------------------------------
-
   static Future<void> deleteComanda({
     required Comanda         comanda,
     required OccupancyPeriod period,
@@ -190,10 +163,7 @@ class ComenzaService {
     await _db.collection('comenzi').doc(comanda.id).delete().timeout(_timeout);
   }
 
-  // ---------------------------------------------------------------------------
   // Convertor Rezervare → Comanda
-  // ---------------------------------------------------------------------------
-
   static Comanda _toComanada(Rezervare r) => Comanda(
     id:                  r.id,
     santierId:           r.santierId ?? '',

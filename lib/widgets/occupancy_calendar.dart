@@ -19,8 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/occupancy_period.dart';
 import '../approval_theme.dart';
-
-// ── API public ────────────────────────────────────────────────────────────────
+import '../app_localizations.dart';
 
 enum CalendarMode { dateOnly, dateTime }
 
@@ -46,12 +45,12 @@ Color? _parseHex(String? hex) {
   }
 }
 
-// ── Pasii de selectie ─────────────────────────────────────────────────────────
+// Pasii de selectie
 
 enum _Step { startDay, pickTimes, done }
 enum _Editing { none, startDay, startTime, endDay, endTime }
 
-// ── Slot de timp predefinit ───────────────────────────────────────────────────
+// Slot de timp predefinit
 
 class _TimeSlot {
   final int hour;
@@ -223,7 +222,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
     super.dispose();
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // Helpers
 
   static DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
   static bool _same(DateTime a, DateTime b) =>
@@ -232,14 +231,14 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
   static String _fmtDT(DateTime d) =>
       '${_fmtD(d)}  ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-  static String _monthName(int m) => const [
-    'Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie',
-    'Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie',
-  ][m - 1];
+  static String _monthName(int m, AppLocalizations l) {
+    const keys = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    return l.translate(keys[m - 1]);
+  }
   static String _dayAbbr(int w) =>
       const ['Lu','Ma','Mi','Jo','Vi','Sâ','Du'][w - 1];
 
-  // ── Perioade per zi ───────────────────────────────────────────────────────
+  // Perioade per zi
 
   List<_Entry> _periodsForDay(DateTime day) {
     final d = _day(day);
@@ -266,7 +265,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
   Color _colorFor(_Entry e) =>
       _parseHex(e.period.santierColor) ?? colorForPeriod(e.idx);
 
-  // ── Logica selectie zile ──────────────────────────────────────────────────
+  // Logica selectie zile
 
   void _onDayTap(DateTime day) {
     HapticFeedback.selectionClick();
@@ -347,7 +346,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
     setState(() { _resetSelection(); _overlapError = null; });
   }
 
-  // ── Drag-to-select ────────────────────────────────────────────────────────
+  //Drag-to-select
 
   // Determina ce zi e la pozitia globala data
   DateTime? _dayAtGlobalPos(Offset global) {
@@ -414,14 +413,14 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
     });
   }
 
-  // ── Time slot selection ───────────────────────────────────────────────────
+  // Time slot selection
 
   void _onSlotTap(_TimeSlot slot) {
     if (_selStart == null) return;
     setState(() {
       _overlapError = null;
 
-      // ── _editing are prioritate maxima ────────────────────────────────────
+      // _editing are prioritate maxima
       if (_editing == _Editing.startTime) {
         _startSlot = slot; _start = slot.on(_selStart!); _editing = _Editing.none;
         if (_end != null) widget.onRangeChanged?.call(_start!, _end!);
@@ -440,7 +439,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
         return;
       }
 
-      // ── Flux normal ───────────────────────────────────────────────────────
+      //Flux normal
       if (_startSlot == null) {
         _startSlot = slot;
         _start = slot.on(_selStart!);
@@ -537,7 +536,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
     return false;
   }
 
-  // ── Tooltip ───────────────────────────────────────────────────────────────
+  // Tooltip
 
   void _showTooltip(BuildContext cellCtx, DateTime day, List<_Entry> entries) {
     if (entries.isEmpty) return;
@@ -569,7 +568,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
     _tooltip?.remove(); _tooltip = null; _tooltipDay = null;
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  // Build
 
   @override
   Widget build(BuildContext context) {
@@ -606,14 +605,14 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Navigare luna ──────────────────────────────────────────────
+            // Navigare luna
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
               child: Row(children: [
                 _NavBtn(icon: Icons.chevron_left, onTap: () => setState(() =>
                 _month = DateTime(_month.year, _month.month - 1))),
                 Expanded(
-                  child: Text('${_monthName(_month.month)} ${_month.year}',
+                  child: Text('${_monthName(_month.month, AppLocalizations.of(context))} ${_month.year}',
                       textAlign: TextAlign.center,
                       style: ApprovalTheme.textTitle(context)),
                 ),
@@ -624,7 +623,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
 
             const Divider(height: 12),
 
-            // ── Header zile ───────────────────────────────────────────────
+            //Header zile
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(children: List.generate(7, (i) => Expanded(
@@ -639,7 +638,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
             ),
             const SizedBox(height: 4),
 
-            // ── Grid zile (stil banda continua) ───────────────────────────
+            //Grid zile (stil banda continua)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: _CalendarGrid(
@@ -661,7 +660,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
               ),
             ),
 
-            // ── Time picker (dateTime mode) ───────────────────────────────
+            //Time picker (dateTime mode)
             if (_isDateTime)
               FadeTransition(
                 opacity: _timeFade,
@@ -691,7 +690,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
                 ),
               ),
 
-            // ── Status / erroare ──────────────────────────────────────────
+            //Status / erroare
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -719,7 +718,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
               ),
             ),
 
-            // ── Legenda ───────────────────────────────────────────────────
+            //Legenda
             if (legendMap.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
@@ -727,18 +726,18 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
                   Divider(height: 1, color: ApprovalTheme.dividerColor(context)),
                   const SizedBox(height: 6),
                   Wrap(spacing: 12, runSpacing: 4, children: [
-                    _LegendDot(color: Colors.grey, label: 'În așteptare', pending: true),
-                    _LegendDot(color: Colors.grey, label: 'Aprobat', pending: false),
+                    _LegendDot(color: Colors.grey, label: AppLocalizations.of(context).translate('inAsteptare'), pending: true),
+                    _LegendDot(color: Colors.grey, label: AppLocalizations.of(context).translate('aprobat'), pending: false),
                     ...legendMap.values.map((e) => _LegendDot(
                         color: _colorFor(e),
-                        label: e.period.rentedBy ?? 'Santier',
+                        label: e.period.rentedBy ?? AppLocalizations.of(context).translate('santierFallback'),
                         pending: false)),
                   ]),
                 ]),
               ),
             ],
 
-            // ── Actiuni ───────────────────────────────────────────────────
+            // Actiuni
             if (widget.showActions) ...[
               const Divider(height: 12),
               Padding(
@@ -752,7 +751,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(ApprovalTheme.radiusMedium)),
                     ),
-                    child: const Text('Anulează'),
+                    child: Text(AppLocalizations.of(context).translate('cancel')),
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: FilledButton(
@@ -764,7 +763,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
                     child: widget.saving
                         ? const SizedBox(width: 16, height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Salvează'),
+                        : Text(AppLocalizations.of(context).translate('save')),
                   )),
                 ]),
               ),
@@ -795,10 +794,7 @@ class _OccupancyCalendarState extends State<OccupancyCalendar>
   }
 }
 
-// =============================================================================
 // _CalendarGrid — gridul de zile cu stil banda continua
-// =============================================================================
-
 class _CalendarGrid extends StatelessWidget {
   final DateTime month;
   final int daysInMonth;
@@ -968,10 +964,7 @@ class _CalendarGrid extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _TimePanel — selector sloturi ora (single-step, sub calendar)
-// =============================================================================
-
 class _TimePanel extends StatelessWidget {
   final DateTime? selStart;
   final DateTime? selEnd;
@@ -1030,11 +1023,11 @@ class _TimePanel extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── Header cu editare selectiva ──────────────────────────────────
+        // Header cu editare selectiva
         Row(children: [
           _EditableChip(
             icon: Icons.calendar_today_outlined,
-            label: selStart != null ? '${selStart!.day.toString().padLeft(2, "0")}.${selStart!.month.toString().padLeft(2, "0")}' : 'Zi',
+            label: selStart != null ? '${selStart!.day.toString().padLeft(2, "0")}.${selStart!.month.toString().padLeft(2, "0")}' : AppLocalizations.of(context).translate('dayShort'),
             color: selColor, isActive: editing == _Editing.startDay, isFilled: selStart != null,
             onTap: editing == _Editing.startDay ? onCancelEdit : onEditStart,
           ),
@@ -1051,7 +1044,7 @@ class _TimePanel extends StatelessWidget {
           ),
           _EditableChip(
             icon: Icons.calendar_today_outlined,
-            label: selEnd != null ? '${selEnd!.day.toString().padLeft(2, "0")}.${selEnd!.month.toString().padLeft(2, "0")}' : 'Zi',
+            label: selEnd != null ? '${selEnd!.day.toString().padLeft(2, "0")}.${selEnd!.month.toString().padLeft(2, "0")}' : AppLocalizations.of(context).translate('dayShort'),
             color: selColor, isActive: editing == _Editing.endDay, isFilled: selEnd != null,
             onTap: editing == _Editing.endDay ? onCancelEdit : onEditEnd,
           ),
@@ -1066,7 +1059,7 @@ class _TimePanel extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // ── Grid sloturi ─────────────────────────────────────────────────
+        //Grid sloturi
         Wrap(
           spacing: 4, runSpacing: 4,
           children: slots.map((slot) {
@@ -1145,7 +1138,7 @@ class _TimePanel extends StatelessWidget {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.schedule_outlined, size: 13, color: selColor.withOpacity(0.7)),
                 const SizedBox(width: 6),
-                Text('Fără oră exactă', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: selColor.withOpacity(0.7))),
+                Text(AppLocalizations.of(context).translate('noExactTime'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: selColor.withOpacity(0.7))),
               ]),
             ),
           ),
@@ -1155,10 +1148,7 @@ class _TimePanel extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _EditableChip
-// =============================================================================
-
 class _EditableChip extends StatelessWidget {
   final IconData icon; final String label; final Color color;
   final bool isActive; final bool isFilled; final VoidCallback onTap;
@@ -1189,21 +1179,14 @@ class _EditableChip extends StatelessWidget {
   }
 }
 
-
-// =============================================================================
 // _Entry
-// =============================================================================
-
 class _Entry {
   final int idx;
   final OccupancyPeriod period;
   const _Entry(this.idx, this.period);
 }
 
-// =============================================================================
 // _Dots
-// =============================================================================
-
 class _Dots extends StatelessWidget {
   final List<_Entry> entries;
   final Color Function(_Entry) colorFor;
@@ -1239,10 +1222,7 @@ class _Dots extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _TooltipCard
-// =============================================================================
-
 class _TooltipCard extends StatelessWidget {
   final List<_Entry>                   entries;
   final Color Function(_Entry)         colorFor;
@@ -1279,7 +1259,7 @@ class _TooltipCard extends StatelessWidget {
             Icon(Icons.calendar_today_outlined, size: 13,
                 color: ApprovalTheme.primaryAccent(context)),
             const SizedBox(width: 6),
-            Expanded(child: Text('Rezervări (${entries.length})',
+            Expanded(child: Text('${AppLocalizations.of(context).translate('reservations')} (${entries.length})',
                 style: ApprovalTheme.textSmall(context)
                     .copyWith(fontWeight: FontWeight.bold))),
             GestureDetector(onTap: onClose,
@@ -1355,10 +1335,7 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _LegendDot
-// =============================================================================
-
 class _LegendDot extends StatelessWidget {
   final Color color; final String label; final bool pending;
   const _LegendDot({required this.color, required this.label, required this.pending});
@@ -1379,10 +1356,7 @@ class _LegendDot extends StatelessWidget {
   );
 }
 
-// =============================================================================
 // _NavBtn
-// =============================================================================
-
 class _NavBtn extends StatelessWidget {
   final IconData icon; final VoidCallback onTap;
   const _NavBtn({required this.icon, required this.onTap});

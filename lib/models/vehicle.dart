@@ -1,13 +1,4 @@
-// lib/models/vehicle.dart
-//
-// Model Vehicle – baza de date: 'meca', colecție: 'vehicles'
-// ID document = nr. înmatriculare (sau UUID dacă nu există)
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-// ════════════════════════════════════════════════════════════
-// OCCUPANCY PERIOD
-// ════════════════════════════════════════════════════════════
 
 class OccupancyPeriod {
   final DateTime from;
@@ -15,11 +6,7 @@ class OccupancyPeriod {
   final String? rentedBy;
   final String santierId;
   final String comenzaId;
-
-  /// "pending" | "aprobat" — null tratat ca pending.
   final String? status;
-
-  /// Culoarea hex a santierului ex. "#2196F3".
   final String? santierColor;
 
   const OccupancyPeriod({
@@ -51,7 +38,7 @@ class OccupancyPeriod {
   factory OccupancyPeriod.fromMap(Map<String, dynamic> map) {
     DateTime parseDate(dynamic val) {
       if (val is Timestamp) return val.toDate();
-      if (val is String) return DateTime.parse(val);
+      if (val is String)    return DateTime.parse(val);
       return DateTime(1970);
     }
     return OccupancyPeriod(
@@ -66,47 +53,26 @@ class OccupancyPeriod {
   }
 }
 
-// ════════════════════════════════════════════════════════════
-// VEHICLE STATUS
-// forma_dezvaluire: 'baza' | 'santier' | 'reparatie'
-// ════════════════════════════════════════════════════════════
-
 enum VehicleStatus { laBase, inSantier, laReparatie }
 
 extension VehicleStatusX on VehicleStatus {
-  String get translationKey {
-    switch (this) {
-      case VehicleStatus.laBase:
-        return 'statusLaBaza';
-      case VehicleStatus.inSantier:
-        return 'statusInSantier';
-      case VehicleStatus.laReparatie:
-        return 'statusLaReparatie';
-    }
-  }
+  String get translationKey => switch (this) {
+    VehicleStatus.laBase      => 'statusLaBaza',
+    VehicleStatus.inSantier   => 'statusInSantier',
+    VehicleStatus.laReparatie => 'statusLaReparatie',
+  };
 
-  String get firestoreValue {
-    switch (this) {
-      case VehicleStatus.laBase:
-        return 'baza';
-      case VehicleStatus.inSantier:
-        return 'santier';
-      case VehicleStatus.laReparatie:
-        return 'reparatie';
-    }
-  }
+  String get firestoreValue => switch (this) {
+    VehicleStatus.laBase      => 'baza',
+    VehicleStatus.inSantier   => 'santier',
+    VehicleStatus.laReparatie => 'reparatie',
+  };
 
-  /// Prioritate sortare: Baza=0, Santier=1, Reparatie=2
-  int get sortOrder {
-    switch (this) {
-      case VehicleStatus.laBase:
-        return 0;
-      case VehicleStatus.inSantier:
-        return 1;
-      case VehicleStatus.laReparatie:
-        return 2;
-    }
-  }
+  int get sortOrder => switch (this) {
+    VehicleStatus.laBase      => 0,
+    VehicleStatus.inSantier   => 1,
+    VehicleStatus.laReparatie => 2,
+  };
 
   static VehicleStatus fromFirestoreValue(String? value) {
     switch (value?.toLowerCase().trim()) {
@@ -123,10 +89,6 @@ extension VehicleStatusX on VehicleStatus {
     }
   }
 }
-
-// ════════════════════════════════════════════════════════════
-// VEHICLE MODEL
-// ════════════════════════════════════════════════════════════
 
 class Vehicle {
   final String idMeca;
@@ -165,22 +127,19 @@ class Vehicle {
     final data = doc.data() as Map<String, dynamic>;
 
     final tonajStr = (data['tonaj_marime'] ?? '').toString().trim();
-    final tonajNum = double.tryParse(
-      tonajStr.replaceAll(RegExp(r'[^\d\.]'), ''),
-    );
+    final tonaj = double.tryParse(tonajStr.replaceAll(RegExp(r'[^\d\.]'), ''));
 
-    final List<OccupancyPeriod> periods = [];
+    final periods = <OccupancyPeriod>[];
 
     final startRaw = data['data_inceput_rezervare'];
     final endRaw   = data['data_sfarsit_rezervare'];
     if (startRaw is Timestamp && endRaw is Timestamp) {
-      final startDt = startRaw.toDate();
-      final endDt   = endRaw.toDate();
-      final isPlaceholder = startDt.year == 1970 && endDt.year == 1970;
-      if (!isPlaceholder) {
+      final from = startRaw.toDate();
+      final to   = endRaw.toDate();
+      if (from.year != 1970 || to.year != 1970) {
         periods.add(OccupancyPeriod(
-          from:         startDt,
-          to:           endDt,
+          from:         from,
+          to:           to,
           rentedBy:     data['rezervat_de'] as String?,
           status:       data['status']       as String?,
           santierColor: data['santierColor'] as String?,
@@ -199,28 +158,26 @@ class Vehicle {
     return Vehicle(
       idMeca:           doc.id,
       nrInmatriculare:  doc.id,
-      clasa:            (data['clasa']          ?? '').toString(),
-      subclasa:         (data['subclasa']        ?? '').toString(),
-      model:            (data['denumire_model']  ?? '').toString(),
+      clasa:            (data['clasa']         ?? '').toString(),
+      subclasa:         (data['subclasa']       ?? '').toString(),
+      model:            (data['denumire_model'] ?? '').toString(),
       tonajMarime:      tonajStr,
-      tonaj:            tonajNum,
-      locatieBaza:      (data['baza']            ?? '').toString(),
-      status:           VehicleStatusX.fromFirestoreValue(
-          data['forma_dezvaluire'] as String?),
+      tonaj:            tonaj,
+      locatieBaza:      (data['baza']           ?? '').toString(),
+      status:           VehicleStatusX.fromFirestoreValue(data['forma_dezvaluire'] as String?),
       occupancyPeriods: periods,
-      imageUrls:        List<String>.from(data['poze']      ?? []),
-      anFabricatie:     data['an_fabricatie']    as int?,
-      serieSasiu:       data['serie_sasiu']      as String?,
-      observatii:       data['observatii']       as String?,
+      imageUrls:        List<String>.from(data['poze'] ?? []),
+      anFabricatie:     data['an_fabricatie']  as int?,
+      serieSasiu:       data['serie_sasiu']    as String?,
+      observatii:       data['observatii']     as String?,
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    final Timestamp zeroTs = Timestamp.fromDate(DateTime(1970, 1, 1));
+    final zero = Timestamp.fromDate(DateTime(1970, 1, 1));
 
-    Timestamp startTs = zeroTs;
-    Timestamp endTs   = zeroTs;
-    String?   rentedBy;
+    Timestamp startTs = zero, endTs = zero;
+    String? rentedBy;
     final extraPeriods = <Map<String, dynamic>>[];
 
     for (int i = 0; i < occupancyPeriods.length; i++) {
@@ -235,73 +192,59 @@ class Vehicle {
     }
 
     return {
-      'clasa':                   clasa,
-      'subclasa':                subclasa,
-      'denumire_model':          model,
-      'tonaj_marime':            tonajMarime,
-      'baza':                    locatieBaza,
-      'forma_dezvaluire':        status.firestoreValue,
-      'data_inceput_rezervare':  startTs,
-      'data_sfarsit_rezervare':  endTs,
-      if (rentedBy != null) 'rezervat_de': rentedBy,
-      if (extraPeriods.isNotEmpty) 'extra_perioade': extraPeriods,
-      if (imageUrls.isNotEmpty) 'poze': imageUrls,
-      if (anFabricatie != null) 'an_fabricatie': anFabricatie,
-      if (serieSasiu != null) 'serie_sasiu': serieSasiu,
-      if (observatii != null) 'observatii': observatii,
+      'clasa':                  clasa,
+      'subclasa':               subclasa,
+      'denumire_model':         model,
+      'tonaj_marime':           tonajMarime,
+      'baza':                   locatieBaza,
+      'forma_dezvaluire':       status.firestoreValue,
+      'data_inceput_rezervare': startTs,
+      'data_sfarsit_rezervare': endTs,
+      if (rentedBy != null)           'rezervat_de':   rentedBy,
+      if (extraPeriods.isNotEmpty)    'extra_perioade': extraPeriods,
+      if (imageUrls.isNotEmpty)       'poze':           imageUrls,
+      if (anFabricatie != null)       'an_fabricatie':  anFabricatie,
+      if (serieSasiu != null)         'serie_sasiu':    serieSasiu,
+      if (observatii != null)         'observatii':     observatii,
     };
   }
 
   Vehicle copyWith({
-    String? idMeca,
-    String? clasa,
-    String? subclasa,
-    String? model,
-    VehicleStatus? status,
-    String? tonajMarime,
-    double? tonaj,
-    String? locatieBaza,
-    String? nrInmatriculare,
-    List<OccupancyPeriod>? occupancyPeriods,
-    List<String>? imageUrls,
-    int? anFabricatie,
-    String? serieSasiu,
-    String? observatii,
-  }) {
-    return Vehicle(
-      idMeca:           idMeca           ?? this.idMeca,
-      clasa:            clasa            ?? this.clasa,
-      subclasa:         subclasa         ?? this.subclasa,
-      model:            model            ?? this.model,
-      status:           status           ?? this.status,
-      tonajMarime:      tonajMarime      ?? this.tonajMarime,
-      tonaj:            tonaj            ?? this.tonaj,
-      locatieBaza:      locatieBaza      ?? this.locatieBaza,
-      nrInmatriculare:  nrInmatriculare  ?? this.nrInmatriculare,
-      occupancyPeriods: occupancyPeriods ?? this.occupancyPeriods,
-      imageUrls:        imageUrls        ?? this.imageUrls,
-      anFabricatie:     anFabricatie     ?? this.anFabricatie,
-      serieSasiu:       serieSasiu       ?? this.serieSasiu,
-      observatii:       observatii       ?? this.observatii,
-    );
-  }
+    String? idMeca, String? clasa, String? subclasa, String? model,
+    VehicleStatus? status, String? tonajMarime, double? tonaj,
+    String? locatieBaza, String? nrInmatriculare,
+    List<OccupancyPeriod>? occupancyPeriods, List<String>? imageUrls,
+    int? anFabricatie, String? serieSasiu, String? observatii,
+  }) => Vehicle(
+    idMeca:           idMeca           ?? this.idMeca,
+    clasa:            clasa            ?? this.clasa,
+    subclasa:         subclasa         ?? this.subclasa,
+    model:            model            ?? this.model,
+    status:           status           ?? this.status,
+    tonajMarime:      tonajMarime      ?? this.tonajMarime,
+    tonaj:            tonaj            ?? this.tonaj,
+    locatieBaza:      locatieBaza      ?? this.locatieBaza,
+    nrInmatriculare:  nrInmatriculare  ?? this.nrInmatriculare,
+    occupancyPeriods: occupancyPeriods ?? this.occupancyPeriods,
+    imageUrls:        imageUrls        ?? this.imageUrls,
+    anFabricatie:     anFabricatie     ?? this.anFabricatie,
+    serieSasiu:       serieSasiu       ?? this.serieSasiu,
+    observatii:       observatii       ?? this.observatii,
+  );
 }
 
-// ════════════════════════════════════════════════════════════
-// SORT: Baza > Santier > Reparatie → Clasa → Subclasa → Tonaj
-// ════════════════════════════════════════════════════════════
-
+// Sortare: Baza > Santier > Reparatie → Clasa → Subclasa → Tonaj
 List<Vehicle> sortVehicles(List<Vehicle> vehicles) {
   final copy = [...vehicles];
   copy.sort((a, b) {
-    final s = a.status.sortOrder.compareTo(b.status.sortOrder);
-    if (s != 0) return s;
+    final byStatus = a.status.sortOrder.compareTo(b.status.sortOrder);
+    if (byStatus != 0) return byStatus;
 
-    final c = a.clasa.toLowerCase().compareTo(b.clasa.toLowerCase());
-    if (c != 0) return c;
+    final byClasa = a.clasa.toLowerCase().compareTo(b.clasa.toLowerCase());
+    if (byClasa != 0) return byClasa;
 
-    final sc = a.subclasa.toLowerCase().compareTo(b.subclasa.toLowerCase());
-    if (sc != 0) return sc;
+    final bySubclasa = a.subclasa.toLowerCase().compareTo(b.subclasa.toLowerCase());
+    if (bySubclasa != 0) return bySubclasa;
 
     if (a.tonaj == null && b.tonaj == null) return 0;
     if (a.tonaj == null) return 1;

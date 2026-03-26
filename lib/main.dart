@@ -19,10 +19,6 @@ void main() async {
   final appSettings = AppSettings();
   await appSettings.ensureInitialized();
 
-  // MIGRARE O SINGURĂ DATĂ: dacă ai date vechi în Firestore cu acest ID,
-  // păstrează-l. Dacă SharedPreferences e deja setat, această linie nu face nimic.
-  await User.migrateGuestId('guest_1774307754392');
-
   final currentUser = await User.loadGuest();
 
   runApp(MyApp(appSettings: appSettings, currentUser: currentUser));

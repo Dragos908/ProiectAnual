@@ -9,24 +9,6 @@ import '../../models/vehicle.dart';
 import '../../app_localizations.dart';
 import '../../approval_theme.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VehiclePdfTab
-//
-// Afișează lista completă de vehicule/mecanizme din Firestore.
-// Permite:
-//   • filtrare după clasă, subclasă, status, search text
-//   • selectare individuală sau în bloc
-//   • previzualizare PDF per vehicul (iconița preview)
-//   • generare PDF combinat pentru selecție (buton principal)
-//
-// PDF-ul conține pentru fiecare vehicul:
-//   - header cu model + nr. înmatriculare
-//   - tabel cu date tehnice (clasă, subclasă, tonaj, bază, an, șasiu)
-//   - status curent
-//   - tabel perioade de ocupare (dacă există)
-//   - observații (dacă există)
-// ─────────────────────────────────────────────────────────────────────────────
-
 class VehiclePdfTab extends StatefulWidget {
   const VehiclePdfTab({super.key});
 
@@ -35,43 +17,30 @@ class VehiclePdfTab extends StatefulWidget {
 }
 
 class _VehiclePdfTabState extends State<VehiclePdfTab> {
-  // ── Firestore ────────────────────────────────────────────────────────────────
   static FirebaseFirestore get _db => FirebaseFirestore.instance;
 
-  // ── Stare filtre ─────────────────────────────────────────────────────────────
-  String _searchQuery = '';
-  VehicleStatus? _selectedStatus; // null = toate
-  String _selectedClasa = 'Toate';
-  String _selectedSubclasa = 'Toate';
+  String         _searchQuery      = '';
+  VehicleStatus? _selectedStatus;
+  String         _selectedClasa    = 'Toate';
+  String         _selectedSubclasa = 'Toate';
+  final Set<String> _selectedIds   = {};
+  bool           _isGenerating     = false;
+  pw.Font?       _cachedFont;
 
-  // ── Stare selecție ───────────────────────────────────────────────────────────
-  final Set<String> _selectedIds = {};
-
-  // ── Stare generare ───────────────────────────────────────────────────────────
-  bool _isGenerating = false;
-
-  // ── Cache font ───────────────────────────────────────────────────────────────
-  pw.Font? _cachedFont;
-
-  // ── Stream vehicule ──────────────────────────────────────────────────────────
   late final Stream<List<Vehicle>> _stream = _db
       .collection('vehicles')
       .snapshots()
       .map((s) => s.docs.map(Vehicle.fromFirestore).toList()
     ..sort((a, b) {
       final c = a.clasa.compareTo(b.clasa);
-      if (c != 0) return c;
-      return a.model.compareTo(b.model);
+      return c != 0 ? c : a.model.compareTo(b.model);
     }));
 
-  // ── Filtrare locală ──────────────────────────────────────────────────────────
   List<Vehicle> _filter(List<Vehicle> all) {
     return all.where((v) {
       if (_selectedStatus != null && v.status != _selectedStatus) return false;
       if (_selectedClasa != 'Toate' && v.clasa != _selectedClasa) return false;
-      if (_selectedSubclasa != 'Toate' && v.subclasa != _selectedSubclasa) {
-        return false;
-      }
+      if (_selectedSubclasa != 'Toate' && v.subclasa != _selectedSubclasa) return false;
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         if (!v.model.toLowerCase().contains(q) &&
@@ -94,7 +63,6 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     return ['Toate', ...sorted];
   }
 
-  // ── Font ─────────────────────────────────────────────────────────────────────
   Future<pw.Font> _getFont() async {
     if (_cachedFont != null) return _cachedFont!;
     final data = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
@@ -102,7 +70,6 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     return _cachedFont!;
   }
 
-  // ── Guard generating ─────────────────────────────────────────────────────────
   Future<T> _withGenerating<T>(Future<T> Function() action) async {
     if (_isGenerating || !mounted) return Future.error('Already generating');
     setState(() => _isGenerating = true);
@@ -120,14 +87,11 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
   }
 
   void _toggle(String id) => setState(() {
-    _selectedIds.contains(id)
-        ? _selectedIds.remove(id)
-        : _selectedIds.add(id);
+    _selectedIds.contains(id) ? _selectedIds.remove(id) : _selectedIds.add(id);
   });
 
   void _clearSelection() => setState(() => _selectedIds.clear());
 
-  // ── Preview PDF ──────────────────────────────────────────────────────────────
   Future<void> _previewPdf(Vehicle v) async {
     try {
       await _withGenerating(() async {
@@ -135,32 +99,33 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
         await Printing.layoutPdf(onLayout: (_) => pdf.save());
       });
     } catch (e) {
-      _showSnackBar('Eroare preview: $e', ApprovalTheme.errorColor(context));
+      _showSnackBar(
+        '${AppLocalizations.of(context).translate('eroare')} preview: $e',
+        ApprovalTheme.errorColor(context),
+      );
     }
   }
 
-  // ── Generare selecție ────────────────────────────────────────────────────────
   Future<void> _generateSelected(List<Vehicle> selected) async {
     try {
       await _withGenerating(() async {
         final pdf = await _buildDocument(selected);
         await Printing.layoutPdf(onLayout: (_) => pdf.save());
       });
+      final l = AppLocalizations.of(context);
       _showSnackBar(
-        'PDF generat pentru ${selected.length} vehicul(e).',
+        l.translate('pdfGeneratedFor')
+            .replaceAll('{name}', '${selected.length} vehicul(e)'),
         ApprovalTheme.successColor(context),
       );
     } catch (e) {
+      final l = AppLocalizations.of(context);
       _showSnackBar(
-        'Eroare generare PDF: $e',
+        l.translate('pdfGenerationError').replaceAll('{error}', e.toString()),
         ApprovalTheme.errorColor(context),
       );
     }
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // BUILD UI
-  // ─────────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -171,16 +136,14 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snap.hasError) {
-          return Center(child: Text('Eroare: ${snap.error}'));
+          return Center(child: Text('${AppLocalizations.of(context).translate('eroare')}: ${snap.error}'));
         }
 
-        final all = snap.data ?? [];
-        final filtered = _filter(all);
-        final visibleIds = filtered.map((v) => v.idMeca).toSet();
-        final allSelected =
-            visibleIds.isNotEmpty && _selectedIds.containsAll(visibleIds);
-        final selectedVehicles =
-        filtered.where((v) => _selectedIds.contains(v.idMeca)).toList();
+        final all              = snap.data ?? [];
+        final filtered         = _filter(all);
+        final visibleIds       = filtered.map((v) => v.idMeca).toSet();
+        final allSelected      = visibleIds.isNotEmpty && _selectedIds.containsAll(visibleIds);
+        final selectedVehicles = filtered.where((v) => _selectedIds.contains(v.idMeca)).toList();
 
         return Padding(
           padding: const EdgeInsets.all(ApprovalTheme.paddingLarge),
@@ -195,7 +158,7 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
                 selected: selectedVehicles,
               ),
               const SizedBox(height: ApprovalTheme.marginLarge),
-              Expanded(child: _buildList(filtered, selectedVehicles)),
+              Expanded(child: _buildList(filtered)),
             ],
           ),
         );
@@ -203,27 +166,25 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     );
   }
 
-  // ── Rând search + buton filtru ───────────────────────────────────────────────
   Widget _buildSearchRow(List<Vehicle> all) {
     final filterActive = _selectedStatus != null ||
         _selectedClasa != 'Toate' ||
         _selectedSubclasa != 'Toate';
     final filterCount =
-        (_selectedStatus != null ? 1 : 0) +
-            (_selectedClasa != 'Toate' ? 1 : 0) +
-            (_selectedSubclasa != 'Toate' ? 1 : 0);
+        (_selectedStatus    != null         ? 1 : 0) +
+            (_selectedClasa    != 'Toate'  ? 1 : 0) +
+            (_selectedSubclasa != 'Toate'  ? 1 : 0);
 
     return Row(
       children: [
         Expanded(
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Caută model / nr. înmatriculare...',
+              hintText: AppLocalizations.of(context).translate('searchVehicleHint'),
               prefixIcon: const Icon(Icons.search, size: 20),
               isDense: true,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
-              ),
+                  borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall)),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: ApprovalTheme.paddingSmall,
                 vertical: ApprovalTheme.paddingSmall,
@@ -236,84 +197,19 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
           ),
         ),
         const SizedBox(width: 8),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            OutlinedButton(
-              onPressed: () => _openFilterSheet(all),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                  color: filterActive
-                      ? Theme.of(context).colorScheme.primary
-                      : ApprovalTheme.textSecondary(context),
-                  width: 1.4,
-                ),
-                foregroundColor: filterActive
-                    ? Theme.of(context).colorScheme.primary
-                    : ApprovalTheme.textSecondary(context),
-                backgroundColor: filterActive
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.07)
-                    : Colors.transparent,
-                padding:
-                const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                  BorderRadius.circular(ApprovalTheme.radiusSmall),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.filter_list,
-                    size: 16,
-                    color: filterActive
-                        ? Theme.of(context).colorScheme.primary
-                        : ApprovalTheme.textSecondary(context),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    filterActive ? 'Filtru ($filterCount)' : 'Filtru',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: filterActive
-                          ? Theme.of(context).colorScheme.primary
-                          : ApprovalTheme.textSecondary(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (filterActive)
-              Positioned(
-                top: -3,
-                right: -3,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-          ],
+        _ActiveFilterButton(
+          isActive: filterActive,
+          filterCount: filterCount,
+          onPressed: () => _openFilterSheet(all),
         ),
       ],
     );
   }
 
-  // ── Deschide filtrul ──────────────────────────────────────────────────────────
   Future<void> _openFilterSheet(List<Vehicle> all) async {
-    final clase = _uniqueClase(all);
+    final clase    = _uniqueClase(all);
     final subclase = _uniqueSubclase(all);
-    if (!clase.contains(_selectedClasa)) _selectedClasa = 'Toate';
+    if (!clase.contains(_selectedClasa))       _selectedClasa    = 'Toate';
     if (!subclase.contains(_selectedSubclasa)) _selectedSubclasa = 'Toate';
 
     final result = await showModalBottomSheet<_VehicleFilter>(
@@ -326,7 +222,7 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
           clasa: _selectedClasa,
           subclasa: _selectedSubclasa,
         ),
-        allClase: clase,
+        allClase:    clase,
         allSubclase: subclase,
       ),
     );
@@ -340,14 +236,13 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     }
   }
 
-
-  // ── Card acțiuni ─────────────────────────────────────────────────────────────
   Widget _buildActionsCard({
     required List<Vehicle> filtered,
     required Set<String> visibleIds,
     required bool allSelected,
     required List<Vehicle> selected,
   }) {
+    final l = AppLocalizations.of(context);
     return Card(
       color: ApprovalTheme.cardBackground(context),
       shape: RoundedRectangleBorder(
@@ -359,81 +254,65 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(ApprovalTheme.paddingMedium),
-        child: Row(
-          children: [
-            TextButton.icon(
-              onPressed: filtered.isEmpty
-                  ? null
-                  : () {
-                setState(() {
-                  allSelected
-                      ? _selectedIds.removeAll(visibleIds)
-                      : _selectedIds.addAll(visibleIds);
-                });
-              },
-              icon: Icon(
-                allSelected
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-                size: 20,
-              ),
+        child: Row(children: [
+          TextButton.icon(
+            onPressed: filtered.isEmpty
+                ? null
+                : () => setState(() {
+              allSelected
+                  ? _selectedIds.removeAll(visibleIds)
+                  : _selectedIds.addAll(visibleIds);
+            }),
+            icon: Icon(
+              allSelected ? Icons.check_box : Icons.check_box_outline_blank,
+              size: 20,
+            ),
+            label: Text(
+              allSelected
+                  ? l.translate('deselectAll')
+                  : l.translate('selectAll').replaceAll('{count}', filtered.length.toString()),
+              style: ApprovalTheme.textBody(context),
+            ),
+          ),
+          const Spacer(),
+          if (_isGenerating)
+            const SizedBox(width: 24, height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2))
+          else
+            FilledButton.icon(
+              onPressed: selected.isEmpty ? null : () => _generateSelected(selected),
+              icon: const Icon(Icons.picture_as_pdf, size: 20),
               label: Text(
-                allSelected
-                    ? AppLocalizations.of(context).translate('deselectAll')
-                    : AppLocalizations.of(context)
-                    .translate('selectAll')
-                    .replaceAll('{count}', filtered.length.toString()),
-                style: ApprovalTheme.textBody(context),
+                selected.isEmpty
+                    ? l.translate('generatePdf')
+                    : '${l.translate('pdf')} (${selected.length})',
+                style: ApprovalTheme.buttonTextStyle,
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: ApprovalTheme.primaryAccent(context),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: ApprovalTheme.paddingMedium,
+                  vertical: ApprovalTheme.paddingMedium,
+                ),
               ),
             ),
-            const Spacer(),
-            if (_isGenerating)
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              FilledButton.icon(
-                onPressed:
-                selected.isEmpty ? null : () => _generateSelected(selected),
-                icon: const Icon(Icons.picture_as_pdf, size: 20),
-                label: Text(
-                  selected.isEmpty
-                      ? AppLocalizations.of(context).translate('generatePdf')
-                      : '${AppLocalizations.of(context).translate('pdf')} (${selected.length})',
-                  style: ApprovalTheme.buttonTextStyle,
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: ApprovalTheme.primaryAccent(context),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: ApprovalTheme.paddingMedium,
-                    vertical: ApprovalTheme.paddingMedium,
-                  ),
-                ),
-              ),
-          ],
-        ),
+        ]),
       ),
     );
   }
 
-  // ── Lista vehicule ───────────────────────────────────────────────────────────
-  Widget _buildList(List<Vehicle> filtered, List<Vehicle> selected) {
+  Widget _buildList(List<Vehicle> filtered) {
     if (filtered.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.agriculture,
-                size: 64,
+            Icon(Icons.agriculture, size: 64,
                 color: ApprovalTheme.textSecondary(context).withOpacity(0.5)),
             const SizedBox(height: ApprovalTheme.paddingLarge),
-            Text(
-              'Niciun vehicul găsit.',
-              style: ApprovalTheme.textTitle(context)
-                  .copyWith(color: ApprovalTheme.textSecondary(context)),
-            ),
+            Text(AppLocalizations.of(context).translate('noVehiclesFound'),
+                style: ApprovalTheme.textTitle(context)
+                    .copyWith(color: ApprovalTheme.textSecondary(context))),
           ],
         ),
       );
@@ -445,16 +324,13 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     );
   }
 
-  // ── Card vehicul ─────────────────────────────────────────────────────────────
   Widget _buildVehicleCard(Vehicle v) {
-    final isSelected = _selectedIds.contains(v.idMeca);
-    final accent = ApprovalTheme.primaryAccent(context);
-    final border = ApprovalTheme.borderColor(context);
-    final l = AppLocalizations.of(context);
-
-    final statusText = l.translate(v.status.translationKey);
-    final activePeriods =
-        v.occupancyPeriods.where((p) => !p.isPending).length;
+    final isSelected   = _selectedIds.contains(v.idMeca);
+    final accent       = ApprovalTheme.primaryAccent(context);
+    final border       = ApprovalTheme.borderColor(context);
+    final l            = AppLocalizations.of(context);
+    final statusText   = l.translate(v.status.translationKey);
+    final activePeriods = v.occupancyPeriods.where((p) => !p.isPending).length;
 
     return Card(
       key: ValueKey(v.idMeca),
@@ -493,10 +369,8 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (v.idMeca.isNotEmpty)
-                Text(
-                  'Nr. înmatriculare: ${v.idMeca}',
-                  style: ApprovalTheme.textBody(context),
-                ),
+                Text('${AppLocalizations.of(context).translate('plate')}: ${v.idMeca}',
+                    style: ApprovalTheme.textBody(context)),
               if (v.clasa.isNotEmpty)
                 Text(
                   '${l.translate('class')}: ${v.clasa}'
@@ -504,22 +378,17 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
                   style: ApprovalTheme.textBody(context),
                 ),
               if (v.tonajMarime.isNotEmpty)
-                Text(
-                  '${l.translate('tonnage')}: ${v.tonajMarime}',
-                  style: ApprovalTheme.textBody(context),
-                ),
+                Text('${l.translate('tonnage')}: ${v.tonajMarime}',
+                    style: ApprovalTheme.textBody(context)),
               if (activePeriods > 0)
-                Text(
-                  'Perioade active: $activePeriods',
-                  style: ApprovalTheme.textBody(context),
-                ),
+                Text('${l.translate('perioadeActive')}: $activePeriods',
+                    style: ApprovalTheme.textBody(context)),
             ],
           ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Badge status — alb/negru, fără culoare
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: ApprovalTheme.paddingSmall,
@@ -527,18 +396,13 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
               ),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: ApprovalTheme.borderColor(context),
-                  width: ApprovalTheme.borderWidth,
-                ),
-                borderRadius:
-                BorderRadius.circular(ApprovalTheme.radiusSmall),
+                    color: ApprovalTheme.borderColor(context),
+                    width: ApprovalTheme.borderWidth),
+                borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
               ),
-              child: Text(
-                statusText,
-                style: ApprovalTheme.textBody(context).copyWith(
-                  fontWeight: ApprovalTheme.fontWeightBold,
-                ),
-              ),
+              child: Text(statusText,
+                  style: ApprovalTheme.textBody(context)
+                      .copyWith(fontWeight: ApprovalTheme.fontWeightBold)),
             ),
             IconButton(
               icon: const Icon(Icons.preview, size: 20),
@@ -552,12 +416,8 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // GENERARE PDF
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  Future<Map<String, List<_RezervareInfo>>> _loadRezervari(
-      List<Vehicle> vehicles) async {
+  // Generare PDF
+  Future<Map<String, List<_RezervareInfo>>> _loadRezervari(List<Vehicle> vehicles) async {
     final result = <String, List<_RezervareInfo>>{};
     for (final v in vehicles) {
       final snap = await _db
@@ -566,13 +426,12 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
           .get();
       result[v.idMeca] = snap.docs.map((doc) {
         final d = doc.data() as Map<String, dynamic>;
-        DateTime ts(dynamic val) =>
-            val is Timestamp ? val.toDate() : DateTime(1970);
+        DateTime ts(dynamic val) => val is Timestamp ? val.toDate() : DateTime(1970);
         return _RezervareInfo(
           santierNume: (d['santierNume'] ?? d['santierId'] ?? '-').toString(),
-          dataStart: ts(d['dataStart']),
-          dataFinal: ts(d['dataFinal']),
-          status: (d['status'] ?? 'pending').toString(),
+          dataStart:   ts(d['dataStart']),
+          dataFinal:   ts(d['dataFinal']),
+          status:      (d['status'] ?? 'pending').toString(),
           creatDeNume: (d['creatDeNume'] ?? '-').toString(),
         );
       }).toList()
@@ -582,9 +441,9 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
   }
 
   Future<pw.Document> _buildDocument(List<Vehicle> vehicles) async {
-    final font = await _getFont();
+    final font      = await _getFont();
     final rezervari = await _loadRezervari(vehicles);
-    final pdf = pw.Document();
+    final pdf       = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
@@ -619,19 +478,10 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(
-              'RAPORT MECANIZME / VEHICULE',
-              style: pw.TextStyle(
-                font: font,
-                fontSize: 13,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.Text(
-              'Generat: ${_fmtDate(DateTime.now())}',
-              style: pw.TextStyle(
-                  font: font, fontSize: 9, color: PdfColors.grey600),
-            ),
+            pw.Text('RAPORT MECANIZME / VEHICULE',
+                style: pw.TextStyle(font: font, fontSize: 13, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Generat: ${_fmtDate(DateTime.now())}',
+                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600)),
           ],
         ),
         pw.SizedBox(height: 3),
@@ -641,7 +491,6 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     );
   }
 
-  // ── Conținut per vehicul ─────────────────────────────────────────────────────
   List<pw.Widget> _buildVehicleWidgets(
       Vehicle v, pw.Font font, List<_RezervareInfo> rezervari) {
     return [
@@ -657,55 +506,35 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     ];
   }
 
-  // ── Header vehicul ───────────────────────────────────────────────────────────
   pw.Widget _pdfVehicleHeader(Vehicle v, pw.Font font) {
-    final modelLabel =
-    v.model.isNotEmpty ? v.model.toUpperCase() : v.idMeca.toUpperCase();
-    final nrLabel = v.idMeca.isNotEmpty ? '  ·  ${v.idMeca}' : '';
+    final modelLabel = v.model.isNotEmpty ? v.model.toUpperCase() : v.idMeca.toUpperCase();
+    final nrLabel    = v.idMeca.isNotEmpty ? '  ·  ${v.idMeca}' : '';
 
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Expanded(
-          child: pw.Text(
-            '$modelLabel$nrLabel',
-            style: pw.TextStyle(
-              font: font,
-              fontSize: 12,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
+          child: pw.Text('$modelLabel$nrLabel',
+              style: pw.TextStyle(font: font, fontSize: 12, fontWeight: pw.FontWeight.bold)),
         ),
-        pw.Text(
-          _translateVehicleStatus(v.status).toUpperCase(),
-          style: pw.TextStyle(
-            font: font,
-            fontSize: 9,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
+        pw.Text(_translateVehicleStatus(v.status).toUpperCase(),
+            style: pw.TextStyle(font: font, fontSize: 9,
+                fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
       ],
     );
   }
 
-  // ── Secțiune date tehnice ────────────────────────────────────────────────────
   pw.Widget _pdfTehnicSection(Vehicle v, pw.Font font) {
     final col1 = <Map<String, String>>[
-      if (v.clasa.isNotEmpty) {'l': 'Clasă:', 'v': v.clasa},
-      if (v.subclasa.isNotEmpty) {'l': 'Subclasă:', 'v': v.subclasa},
-      if (v.tonajMarime.isNotEmpty) {'l': 'Tonaj:', 'v': v.tonajMarime},
-      if (v.locatieBaza.isNotEmpty) {'l': 'Bază:', 'v': v.locatieBaza},
+      if (v.clasa.isNotEmpty)      {'l': 'Clasă:',    'v': v.clasa},
+      if (v.subclasa.isNotEmpty)   {'l': 'Subclasă:', 'v': v.subclasa},
+      if (v.tonajMarime.isNotEmpty){'l': 'Tonaj:',    'v': v.tonajMarime},
+      if (v.locatieBaza.isNotEmpty){'l': 'Bază:',     'v': v.locatieBaza},
     ];
     final col2 = <Map<String, String>>[
-      if (v.anFabricatie != null)
-        {'l': 'An fabricație:', 'v': '${v.anFabricatie}'},
-      if (v.serieSasiu != null && v.serieSasiu!.isNotEmpty)
-        {'l': 'Serie șasiu:', 'v': v.serieSasiu!},
-      {
-        'l': 'Perioade ocupare:',
-        'v': '${v.occupancyPeriods.length}',
-      },
+      if (v.anFabricatie != null)                        {'l': 'An fabricație:', 'v': '${v.anFabricatie}'},
+      if (v.serieSasiu != null && v.serieSasiu!.isNotEmpty) {'l': 'Serie șasiu:', 'v': v.serieSasiu!},
+      {'l': 'Perioade ocupare:', 'v': '${v.occupancyPeriods.length}'},
     ];
 
     return pw.Row(
@@ -714,15 +543,13 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
         pw.Expanded(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children:
-            col1.map((e) => _pdfInfoRow(e['l']!, e['v']!, font)).toList(),
+            children: col1.map((e) => _pdfInfoRow(e['l']!, e['v']!, font)).toList(),
           ),
         ),
         pw.Expanded(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children:
-            col2.map((e) => _pdfInfoRow(e['l']!, e['v']!, font)).toList(),
+            children: col2.map((e) => _pdfInfoRow(e['l']!, e['v']!, font)).toList(),
           ),
         ),
       ],
@@ -737,36 +564,25 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
         children: [
           pw.SizedBox(
             width: 90,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(
-                  font: font, fontSize: 9, color: PdfColors.grey600),
-              maxLines: 1,
-              softWrap: false,
-            ),
+            child: pw.Text(label,
+                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600),
+                maxLines: 1, softWrap: false),
           ),
           pw.Expanded(
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(font: font, fontSize: 9),
-              maxLines: 2,
-            ),
+            child: pw.Text(value,
+                style: pw.TextStyle(font: font, fontSize: 9), maxLines: 2),
           ),
         ],
       ),
     );
   }
 
-  // ── Tabel șantiere (din rezervari) ─────────────────────────────────
   pw.Widget _pdfSantierTable(List<_RezervareInfo> rezervari, pw.Font font) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          'SANTIERE / PERIOADE:',
-          style: pw.TextStyle(
-              font: font, fontSize: 10, fontWeight: pw.FontWeight.bold),
-        ),
+        pw.Text('SANTIERE / PERIOADE:',
+            style: pw.TextStyle(font: font, fontSize: 10, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 4),
         if (rezervari.isEmpty)
           pw.Container(
@@ -775,11 +591,8 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
               border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
               borderRadius: pw.BorderRadius.circular(3),
             ),
-            child: pw.Text(
-              'Nu există șantiere înregistrate pentru acest vehicul.',
-              style: pw.TextStyle(
-                  font: font, fontSize: 9, color: PdfColors.grey500),
-            ),
+            child: pw.Text('Nu există șantiere înregistrate pentru acest vehicul.',
+                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey500)),
           )
         else
           pw.Table(
@@ -818,27 +631,25 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
   }
 
   pw.Widget _tdStatus(String status, pw.Font font) {
-    final label = status == 'aprobat' ? 'Aprobat'
-        : status == 'respins' ? 'Respins' : 'In asteptare';
+    final label = switch (status) {
+      'aprobat' => 'Aprobat',
+      'respins' => 'Respins',
+      _         => 'In asteptare',
+    };
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: pw.Text(label,
-          style: pw.TextStyle(
-              font: font, fontSize: 8, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(font: font, fontSize: 8, fontWeight: pw.FontWeight.bold),
           textAlign: pw.TextAlign.center),
     );
   }
 
-  // ── Observații ───────────────────────────────────────────────────────────────
   pw.Widget _pdfObservatii(String obs, pw.Font font) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          'OBSERVAȚII:',
-          style: pw.TextStyle(
-              font: font, fontSize: 10, fontWeight: pw.FontWeight.bold),
-        ),
+        pw.Text('OBSERVAȚII:',
+            style: pw.TextStyle(font: font, fontSize: 10, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 3),
         pw.Container(
           width: double.infinity,
@@ -853,50 +664,35 @@ class _VehiclePdfTabState extends State<VehiclePdfTab> {
     );
   }
 
-  // ── Celule tabel ─────────────────────────────────────────────────────────────
-  pw.Widget _th(String text, pw.Font font,
-      [pw.TextAlign align = pw.TextAlign.left]) {
+  pw.Widget _th(String text, pw.Font font, [pw.TextAlign align = pw.TextAlign.left]) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: pw.Text(
-        text,
-        style:
-        pw.TextStyle(font: font, fontSize: 8, fontWeight: pw.FontWeight.bold),
-        textAlign: align,
-      ),
+      child: pw.Text(text,
+          style: pw.TextStyle(font: font, fontSize: 8, fontWeight: pw.FontWeight.bold),
+          textAlign: align),
     );
   }
 
-  pw.Widget _td(String text, pw.Font font,
-      {pw.TextAlign align = pw.TextAlign.left}) {
+  pw.Widget _td(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(font: font, fontSize: 8),
-        textAlign: align,
-        maxLines: 2,
-      ),
+      child: pw.Text(text,
+          style: pw.TextStyle(font: font, fontSize: 8),
+          textAlign: align, maxLines: 2),
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
-  String _translateVehicleStatus(VehicleStatus s) {
-    switch (s) {
-      case VehicleStatus.laBase:
-        return 'La Bază';
-      case VehicleStatus.inSantier:
-        return 'În Șantier';
-      case VehicleStatus.laReparatie:
-        return 'La Reparație';
-    }
-  }
+  String _translateVehicleStatus(VehicleStatus s) => switch (s) {
+    VehicleStatus.laBase      => 'La Bază',
+    VehicleStatus.inSantier   => 'În Șantier',
+    VehicleStatus.laReparatie => 'La Reparație',
+  };
 }
 
-// ── Model intern pentru datele din rezervari ─────────────────────────────────
+// Model intern
 class _RezervareInfo {
   final String santierNume;
   final DateTime dataStart;
@@ -913,10 +709,7 @@ class _RezervareInfo {
   });
 }
 
-// =============================================================================
-// _VehicleFilter — date returnate de bottom sheet
-// =============================================================================
-
+// _VehicleFilter
 class _VehicleFilter {
   final VehicleStatus? status;
   final String clasa;
@@ -929,10 +722,7 @@ class _VehicleFilter {
   });
 }
 
-// =============================================================================
-// _VehicleFilterSheet — bottom sheet identic ca design cu _PdfFilterSheet
-// =============================================================================
-
+// _VehicleFilterSheet
 class _VehicleFilterSheet extends StatefulWidget {
   final _VehicleFilter current;
   final List<String> allClase;
@@ -961,8 +751,23 @@ class _VehicleFilterSheetState extends State<_VehicleFilterSheet> {
     _subclasa = widget.current.subclasa;
   }
 
-  // Subclasele se filtrează după clasa selectată (dacă există o clasă selectată)
-  List<String> get _filteredSubclase => widget.allSubclase;
+  InputDecoration _dropdownDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: ApprovalTheme.textBody(context),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+        borderSide: BorderSide(color: ApprovalTheme.borderColor(context)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+        borderSide: BorderSide(color: ApprovalTheme.borderColor(context)),
+      ),
+      filled: true,
+      fillColor: ApprovalTheme.surfaceBackground(context),
+      isDense: true,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -974,206 +779,180 @@ class _VehicleFilterSheetState extends State<_VehicleFilterSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(children: [
-        // ── Handle ───────────────────────────────────────────────────────────
-        Column(mainAxisSize: MainAxisSize.min, children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: ApprovalTheme.borderColor(context),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ]),
-
-        // ── Header ───────────────────────────────────────────────────────────
+        const _SheetHandle(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
-            Text('Filtru vehicule', style: ApprovalTheme.textTitle(context)),
+            Text(AppLocalizations.of(context).translate('filterVehicles'), style: ApprovalTheme.textTitle(context)),
             const Spacer(),
             TextButton(
               onPressed: () => setState(() {
-                _status   = null;
-                _clasa    = 'Toate';
-                _subclasa = 'Toate';
+                _status = null; _clasa = 'Toate'; _subclasa = 'Toate';
               }),
-              child: const Text('Resetează'),
+              child: Text(AppLocalizations.of(context).translate('reset')),
             ),
           ]),
         ),
         const Divider(height: 1),
-
-        // ── Conținut scrollabil ───────────────────────────────────────────────
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ── Status dropdown — identic cu _FilterDropdown din santiere_list_page
                 DropdownButtonFormField<VehicleStatus?>(
                   value: _status,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    labelStyle: ApprovalTheme.textBody(context),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    filled: true,
-                    fillColor: ApprovalTheme.surfaceBackground(context),
-                    isDense: true,
-                  ),
+                  decoration: _dropdownDecoration(AppLocalizations.of(context).translate('status')),
                   style: ApprovalTheme.textBody(context),
                   dropdownColor: ApprovalTheme.surfaceBackground(context),
                   items: [
                     DropdownMenuItem<VehicleStatus?>(
                       value: null,
-                      child: Text('Toate',
-                          style: ApprovalTheme.textBody(context)),
+                      child: Text(AppLocalizations.of(context).translate('all'), style: ApprovalTheme.textBody(context)),
                     ),
-                    DropdownMenuItem(
-                      value: VehicleStatus.laBase,
-                      child: Text('La Bază',
-                          style: ApprovalTheme.textBody(context)),
-                    ),
-                    DropdownMenuItem(
-                      value: VehicleStatus.inSantier,
-                      child: Text('În Șantier',
-                          style: ApprovalTheme.textBody(context)),
-                    ),
-                    DropdownMenuItem(
-                      value: VehicleStatus.laReparatie,
-                      child: Text('La Reparație',
-                          style: ApprovalTheme.textBody(context)),
-                    ),
+                    DropdownMenuItem(value: VehicleStatus.laBase,
+                        child: Text(AppLocalizations.of(context).translate('statusLaBaza'), style: ApprovalTheme.textBody(context))),
+                    DropdownMenuItem(value: VehicleStatus.inSantier,
+                        child: Text(AppLocalizations.of(context).translate('statusInSantier'), style: ApprovalTheme.textBody(context))),
+                    DropdownMenuItem(value: VehicleStatus.laReparatie,
+                        child: Text(AppLocalizations.of(context).translate('statusLaReparatie'), style: ApprovalTheme.textBody(context))),
                   ],
                   onChanged: (v) => setState(() => _status = v),
                 ),
-
                 const SizedBox(height: 12),
-
-                // ── Clasă ────────────────────────────────────────────────────
                 DropdownButtonFormField<String>(
                   value: _clasa,
-                  decoration: InputDecoration(
-                    labelText: 'Clasă',
-                    labelStyle: ApprovalTheme.textBody(context),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    filled: true,
-                    fillColor: ApprovalTheme.surfaceBackground(context),
-                    isDense: true,
-                  ),
+                  decoration: _dropdownDecoration(AppLocalizations.of(context).translate('class')),
                   style: ApprovalTheme.textBody(context),
                   dropdownColor: ApprovalTheme.surfaceBackground(context),
-                  items: widget.allClase
-                      .map((c) => DropdownMenuItem(
+                  items: widget.allClase.map((c) => DropdownMenuItem(
                     value: c,
-                    child: Text(c,
-                        style: ApprovalTheme.textBody(context)),
-                  ))
-                      .toList(),
+                    child: Text(c, style: ApprovalTheme.textBody(context)),
+                  )).toList(),
                   onChanged: (v) => setState(() {
-                    _clasa    = v ?? 'Toate';
-                    _subclasa = 'Toate';
+                    _clasa = v ?? 'Toate'; _subclasa = 'Toate';
                   }),
                 ),
-
                 const SizedBox(height: 12),
-
-                // ── Subclasă ─────────────────────────────────────────────────
                 DropdownButtonFormField<String>(
-                  value: _filteredSubclase.contains(_subclasa)
-                      ? _subclasa
-                      : 'Toate',
-                  decoration: InputDecoration(
-                    labelText: 'Subclasă',
-                    labelStyle: ApprovalTheme.textBody(context),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    filled: true,
-                    fillColor: ApprovalTheme.surfaceBackground(context),
-                    isDense: true,
-                  ),
+                  value: widget.allSubclase.contains(_subclasa) ? _subclasa : 'Toate',
+                  decoration: _dropdownDecoration(AppLocalizations.of(context).translate('subclass')),
                   style: ApprovalTheme.textBody(context),
                   dropdownColor: ApprovalTheme.surfaceBackground(context),
-                  items: _filteredSubclase
-                      .map((s) => DropdownMenuItem(
+                  items: widget.allSubclase.map((s) => DropdownMenuItem(
                     value: s,
-                    child: Text(s,
-                        style: ApprovalTheme.textBody(context)),
-                  ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setState(() => _subclasa = v ?? 'Toate'),
+                    child: Text(s, style: ApprovalTheme.textBody(context)),
+                  )).toList(),
+                  onChanged: (v) => setState(() => _subclasa = v ?? 'Toate'),
                 ),
               ],
             ),
           ),
         ),
-
-        // ── Buton Aplică ─────────────────────────────────────────────────────
         Padding(
-          padding:
-          EdgeInsets.fromLTRB(16, 8, 16, 16 + mq.viewInsets.bottom),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + mq.viewInsets.bottom),
           child: SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                _VehicleFilter(
-                  status: _status,
-                  clasa: _clasa,
-                  subclasa: _subclasa,
-                ),
-              ),
+              onPressed: () => Navigator.pop(context,
+                  _VehicleFilter(status: _status, clasa: _clasa, subclasa: _subclasa)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                  BorderRadius.circular(ApprovalTheme.radiusMedium),
-                ),
+                    borderRadius: BorderRadius.circular(ApprovalTheme.radiusMedium)),
               ),
-              child: const Text('Aplică filtrul'),
+              child: Text(AppLocalizations.of(context).translate('applyFilter')),
             ),
           ),
         ),
       ]),
     );
   }
+}
+
+// Shared widgets
+class _ActiveFilterButton extends StatelessWidget {
+  final bool isActive;
+  final int filterCount;
+  final VoidCallback onPressed;
+
+  const _ActiveFilterButton({
+    required this.isActive,
+    required this.filterCount,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive
+        ? Theme.of(context).colorScheme.primary
+        : ApprovalTheme.textSecondary(context);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: color, width: 1.4),
+            foregroundColor: color,
+            backgroundColor: isActive ? color.withOpacity(0.07) : Colors.transparent,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.filter_list, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                isActive
+                    ? '${AppLocalizations.of(context).translate('filter')} ($filterCount)'
+                    : AppLocalizations.of(context).translate('filter'),
+                style: TextStyle(fontSize: 12, color: color),
+              ),
+            ],
+          ),
+        ),
+        if (isActive)
+          Positioned(
+            top: -3, right: -3,
+            child: Container(
+              width: 8, height: 8,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor, width: 1.5),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SheetHandle extends StatelessWidget {
+  const _SheetHandle();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const SizedBox(height: 8),
+      Container(
+        width: 40, height: 4,
+        decoration: BoxDecoration(
+          color: ApprovalTheme.borderColor(context),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      const SizedBox(height: 12),
+    ],
+  );
 }

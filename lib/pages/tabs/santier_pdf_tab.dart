@@ -11,11 +11,8 @@ import '../../approval_theme.dart';
 
 import 'vehicle_pdf_tab.dart';
 
-// =============================================================================
-// CombinedPdfPage — tab switcher cu OutlinedButton identic cu home_page
-// =============================================================================
-
-class CombinedPdfPage extends StatelessWidget {
+// CombinedPdfPage — tab switcher Șantiere / Vehicule
+class CombinedPdfPage extends StatefulWidget {
   final List<Santier> santiere;
   final List<Comanda> comenzi;
 
@@ -26,45 +23,31 @@ class CombinedPdfPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return _CombinedPdfPageBody(santiere: santiere, comenzi: comenzi);
-  }
+  State<CombinedPdfPage> createState() => _CombinedPdfPageState();
 }
 
-class _CombinedPdfPageBody extends StatefulWidget {
-  final List<Santier> santiere;
-  final List<Comanda> comenzi;
-
-  const _CombinedPdfPageBody({
-    required this.santiere,
-    required this.comenzi,
-  });
-
-  @override
-  State<_CombinedPdfPageBody> createState() => _CombinedPdfPageBodyState();
-}
-
-class _CombinedPdfPageBodyState extends State<_CombinedPdfPageBody> {
+class _CombinedPdfPageState extends State<CombinedPdfPage> {
   int _currentTab = 0;
 
-  static const _tabs = [
-    _TabDef(icon: Icons.construction,   label: 'Șantiere'),
-    _TabDef(icon: Icons.directions_car, label: 'Vehicule'),
+  List<_TabDef> _tabs(AppLocalizations l) => [
+    _TabDef(icon: Icons.construction,   label: l.translate('santiere')),
+    _TabDef(icon: Icons.directions_car, label: l.translate('vehicule')),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final l    = AppLocalizations.of(context);
+    final tabs = _tabs(l);
     return Column(
       children: [
-        // ── Tab switcher — OutlinedButton, identic cu home_page ──────────────
         Container(
           color: Theme.of(context).scaffoldBackgroundColor,
           padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
           child: Row(
-            children: List.generate(_tabs.length, (i) {
-              final tab = _tabs[i];
+            children: List.generate(tabs.length, (i) {
+              final tab        = tabs[i];
               final isSelected = _currentTab == i;
-              final color = isSelected
+              final color      = isSelected
                   ? Theme.of(context).colorScheme.primary
                   : ApprovalTheme.textSecondary(context);
 
@@ -74,17 +57,14 @@ class _CombinedPdfPageBodyState extends State<_CombinedPdfPageBody> {
                   child: OutlinedButton(
                     onPressed: () => setState(() => _currentTab = i),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: color, width: isSelected ? 2.0 : 1.4),
+                      side: BorderSide(color: color, width: isSelected ? 2.0 : 1.4),
                       foregroundColor: color,
                       backgroundColor: isSelected
                           ? color.withOpacity(0.07)
                           : Colors.transparent,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                            ApprovalTheme.radiusSmall),
-                      ),
+                          borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall)),
                       minimumSize: const Size(0, 40),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -100,9 +80,7 @@ class _CombinedPdfPageBodyState extends State<_CombinedPdfPageBody> {
                             style: TextStyle(
                               fontSize: 13,
                               color: color,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -117,14 +95,11 @@ class _CombinedPdfPageBodyState extends State<_CombinedPdfPageBody> {
             }),
           ),
         ),
-
-        // ── Conținut tab ─────────────────────────────────────────────────────
         Expanded(
           child: IndexedStack(
             index: _currentTab,
             children: [
-              SantierPdfTab(
-                  santiere: widget.santiere, comenzi: widget.comenzi),
+              SantierPdfTab(santiere: widget.santiere, comenzi: widget.comenzi),
               const VehiclePdfTab(),
             ],
           ),
@@ -139,10 +114,6 @@ class _TabDef {
   final String label;
   const _TabDef({required this.icon, required this.label});
 }
-
-// =============================================================================
-// SantierPdfTab
-// =============================================================================
 
 class SantierPdfTab extends StatefulWidget {
   final List<Santier> santiere;
@@ -159,21 +130,13 @@ class SantierPdfTab extends StatefulWidget {
 }
 
 class _SantierPdfTabState extends State<SantierPdfTab> {
-  // ── Stare filtre ────────────────────────────────────────────────────────────
-  String _searchQuery = '';
+  String         _searchQuery      = '';
   SantierStatus? _selectedStatus;
   DateTimeRange? _selectedDateRange;
+  final Set<String> _selectedIds   = {};
+  bool           _isGenerating     = false;
+  pw.Font?       _cachedFont;
 
-  // ── Stare selecție ──────────────────────────────────────────────────────────
-  final Set<String> _selectedIds = {};
-
-  // ── Stare generare ──────────────────────────────────────────────────────────
-  bool _isGenerating = false;
-
-  // ── Cache font ──────────────────────────────────────────────────────────────
-  pw.Font? _cachedFont;
-
-  // ── Computed: lista filtrata ────────────────────────────────────────────────
   List<Santier> get _filtered {
     return widget.santiere.where((s) {
       if (_selectedStatus != null && s.status != _selectedStatus) return false;
@@ -205,7 +168,6 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
           .toList()
         ..sort((a, b) => a.dataStart.compareTo(b.dataStart));
 
-  // ── Font ────────────────────────────────────────────────────────────────────
   Future<pw.Font> _getFont() async {
     if (_cachedFont != null) return _cachedFont!;
     final data = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
@@ -232,9 +194,7 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
 
   void _toggle(String id) {
     setState(() {
-      _selectedIds.contains(id)
-          ? _selectedIds.remove(id)
-          : _selectedIds.add(id);
+      _selectedIds.contains(id) ? _selectedIds.remove(id) : _selectedIds.add(id);
     });
   }
 
@@ -254,16 +214,14 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     }
   }
 
-  Future<void> _generateSelected(
-      List<Santier> selected, AppLocalizations l) async {
+  Future<void> _generateSelected(List<Santier> selected, AppLocalizations l) async {
     try {
       await _withGenerating(() async {
         final pdf = await _buildDocument(selected);
         await Printing.layoutPdf(onLayout: (_) => pdf.save());
       });
       _showSnackBar(
-        l
-            .translate('generatedDocumentsInSinglePdf')
+        l.translate('generatedDocumentsInSinglePdf')
             .replaceAll('{count}', selected.length.toString()),
         ApprovalTheme.successColor(context),
       );
@@ -275,17 +233,13 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     }
   }
 
-  // ── Deschide filtrul ────────────────────────────────────────────────────────
   void _openFilterSheet(AppLocalizations l) async {
     final result = await showModalBottomSheet<_PdfFilter>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _PdfFilterSheet(
-        current: _PdfFilter(
-          status: _selectedStatus,
-          dateRange: _selectedDateRange,
-        ),
+        current: _PdfFilter(status: _selectedStatus, dateRange: _selectedDateRange),
       ),
     );
     if (result != null) {
@@ -297,137 +251,51 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // BUILD UI
-  // ─────────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final filtered = _filtered;
-
-    final visibleIds    = filtered.map((s) => s.id).toSet();
-    final allSelected   = visibleIds.isNotEmpty &&
-        _selectedIds.containsAll(visibleIds);
-    final selectedSantiere =
-    filtered.where((s) => _selectedIds.contains(s.id)).toList();
-
-    final filterActive =
-        _selectedStatus != null || _selectedDateRange != null;
-    final int filterCount =
-        (_selectedStatus != null ? 1 : 0) +
-            (_selectedDateRange != null ? 1 : 0);
+    final l              = AppLocalizations.of(context);
+    final filtered       = _filtered;
+    final visibleIds     = filtered.map((s) => s.id).toSet();
+    final allSelected    = visibleIds.isNotEmpty && _selectedIds.containsAll(visibleIds);
+    final selectedSantiere = filtered.where((s) => _selectedIds.contains(s.id)).toList();
+    final filterActive   = _selectedStatus != null || _selectedDateRange != null;
+    final filterCount    = (_selectedStatus != null ? 1 : 0) + (_selectedDateRange != null ? 1 : 0);
 
     return Padding(
       padding: const EdgeInsets.all(ApprovalTheme.paddingLarge),
       child: Column(
         children: [
-          // ── Rând 1: search + buton filtru ────────────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: l.translate('search'),
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: ApprovalTheme.paddingSmall,
-                      vertical: ApprovalTheme.paddingSmall,
-                    ),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: l.translate('search'),
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
                   ),
-                  onChanged: (v) {
-                    setState(() => _searchQuery = v);
-                    _clearSelection();
-                  },
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: ApprovalTheme.paddingSmall,
+                    vertical: ApprovalTheme.paddingSmall,
+                  ),
                 ),
+                onChanged: (v) {
+                  setState(() => _searchQuery = v);
+                  _clearSelection();
+                },
               ),
-              const SizedBox(width: 8),
-              // Buton filtru — identic cu _FilterButton din santiere_list_page
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => _openFilterSheet(l),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: filterActive
-                            ? Theme.of(context).colorScheme.primary
-                            : ApprovalTheme.textSecondary(context),
-                        width: 1.4,
-                      ),
-                      foregroundColor: filterActive
-                          ? Theme.of(context).colorScheme.primary
-                          : ApprovalTheme.textSecondary(context),
-                      backgroundColor: filterActive
-                          ? Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.07)
-                          : Colors.transparent,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 12),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                            ApprovalTheme.radiusSmall),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.filter_list,
-                          size: 16,
-                          color: filterActive
-                              ? Theme.of(context).colorScheme.primary
-                              : ApprovalTheme.textSecondary(context),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          filterActive
-                              ? 'Filtru ($filterCount)'
-                              : 'Filtru',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: filterActive
-                                ? Theme.of(context).colorScheme.primary
-                                : ApprovalTheme.textSecondary(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (filterActive)
-                    Positioned(
-                      top: -3,
-                      right: -3,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            _ActiveFilterButton(
+              isActive: filterActive,
+              filterCount: filterCount,
+              onPressed: () => _openFilterSheet(l),
+            ),
+          ]),
 
           const SizedBox(height: ApprovalTheme.marginLarge),
 
-          // ── Rând 2: selectează tot + buton PDF ───────────────────────────
           _buildActionsCard(
             l: l,
             filtered: filtered,
@@ -444,7 +312,6 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     );
   }
 
-  // ── Card acțiuni ────────────────────────────────────────────────────────────
   Widget _buildActionsCard({
     required AppLocalizations l,
     required List<Santier> filtered,
@@ -463,84 +330,70 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(ApprovalTheme.paddingMedium),
-        child: Row(
-          children: [
-            TextButton.icon(
-              onPressed: filtered.isEmpty
+        child: Row(children: [
+          TextButton.icon(
+            onPressed: filtered.isEmpty
+                ? null
+                : () => setState(() {
+              allSelected
+                  ? _selectedIds.removeAll(visibleIds)
+                  : _selectedIds.addAll(visibleIds);
+            }),
+            icon: Icon(
+              allSelected ? Icons.check_box : Icons.check_box_outline_blank,
+              size: 20,
+            ),
+            label: Text(
+              allSelected
+                  ? l.translate('deselectAll')
+                  : l.translate('selectAll').replaceAll('{count}', filtered.length.toString()),
+              style: ApprovalTheme.textBody(context),
+            ),
+          ),
+          const Spacer(),
+          if (_isGenerating)
+            const SizedBox(
+              width: 24, height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            FilledButton.icon(
+              onPressed: selectedSantiere.isEmpty
                   ? null
-                  : () {
-                setState(() {
-                  allSelected
-                      ? _selectedIds.removeAll(visibleIds)
-                      : _selectedIds.addAll(visibleIds);
-                });
-              },
-              icon: Icon(
-                allSelected
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-                size: 20,
-              ),
+                  : () => _generateSelected(selectedSantiere, l),
+              icon: const Icon(Icons.picture_as_pdf, size: 20),
               label: Text(
-                allSelected
-                    ? l.translate('deselectAll')
-                    : l
-                    .translate('selectAll')
-                    .replaceAll('{count}', filtered.length.toString()),
-                style: ApprovalTheme.textBody(context),
+                selectedSantiere.isEmpty
+                    ? l.translate('generatePdf')
+                    : '${l.translate('pdf')} (${selectedSantiere.length})',
+                style: ApprovalTheme.buttonTextStyle,
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: ApprovalTheme.primaryAccent(context),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: ApprovalTheme.paddingMedium,
+                  vertical: ApprovalTheme.paddingMedium,
+                ),
               ),
             ),
-            const Spacer(),
-            if (_isGenerating)
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              FilledButton.icon(
-                onPressed: selectedSantiere.isEmpty
-                    ? null
-                    : () => _generateSelected(selectedSantiere, l),
-                icon: const Icon(Icons.picture_as_pdf, size: 20),
-                label: Text(
-                  selectedSantiere.isEmpty
-                      ? l.translate('generatePdf')
-                      : '${l.translate('pdf')} (${selectedSantiere.length})',
-                  style: ApprovalTheme.buttonTextStyle,
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: ApprovalTheme.primaryAccent(context),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: ApprovalTheme.paddingMedium,
-                    vertical: ApprovalTheme.paddingMedium,
-                  ),
-                ),
-              ),
-          ],
-        ),
+        ]),
       ),
     );
   }
 
-  // ── Lista santiere ──────────────────────────────────────────────────────────
   Widget _buildList(AppLocalizations l, List<Santier> filtered) {
     if (filtered.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.construction,
-              size: 64,
-              color: ApprovalTheme.textSecondary(context).withOpacity(0.5),
-            ),
+            Icon(Icons.construction, size: 64,
+                color: ApprovalTheme.textSecondary(context).withOpacity(0.5)),
             const SizedBox(height: ApprovalTheme.paddingLarge),
             Text(
               l.translate('noMatchingOrders'),
-              style: ApprovalTheme.textTitle(context).copyWith(
-                color: ApprovalTheme.textSecondary(context),
-              ),
+              style: ApprovalTheme.textTitle(context)
+                  .copyWith(color: ApprovalTheme.textSecondary(context)),
             ),
           ],
         ),
@@ -553,7 +406,6 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     );
   }
 
-  // ── Card santier ────────────────────────────────────────────────────────────
   Widget _buildSantierCard(Santier s, int index, AppLocalizations l) {
     final isSelected = _selectedIds.contains(s.id);
     final accent     = ApprovalTheme.primaryAccent(context);
@@ -583,51 +435,37 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
           onChanged: (_) => _toggle(s.id),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        title: Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              margin: const EdgeInsets.only(right: 6),
-              decoration: BoxDecoration(
-                color: s.flutterColor,
-                shape: BoxShape.circle,
+        title: Row(children: [
+          Container(
+            width: 10, height: 10,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(color: s.flutterColor, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: Text(
+              s.denumire,
+              style: ApprovalTheme.textTitle(context).copyWith(
+                fontWeight: isSelected
+                    ? ApprovalTheme.fontWeightBold
+                    : ApprovalTheme.fontWeightNormal,
               ),
             ),
-            Expanded(
-              child: Text(
-                s.denumire,
-                style: ApprovalTheme.textTitle(context).copyWith(
-                  fontWeight: isSelected
-                      ? ApprovalTheme.fontWeightBold
-                      : ApprovalTheme.fontWeightNormal,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ]),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: ApprovalTheme.paddingTiny),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${l.translate('location')}: ${s.locatie}',
-                style: ApprovalTheme.textBody(context),
-              ),
-              Text(
-                '${l.translate('createdBy')}: ${s.creatDeNume}',
-                style: ApprovalTheme.textBody(context),
-              ),
+              Text('${l.translate('location')}: ${s.locatie}',
+                  style: ApprovalTheme.textBody(context)),
+              Text('${l.translate('createdBy')}: ${s.creatDeNume}',
+                  style: ApprovalTheme.textBody(context)),
               if (s.dataIncepere != null)
-                Text(
-                  '${l.translate('startDate')}: ${_formatDate(s.dataIncepere!)}',
-                  style: ApprovalTheme.textBody(context),
-                ),
-              Text(
-                '${l.translate('orders')}: ${comenzi.length}',
-                style: ApprovalTheme.textBody(context),
-              ),
+                Text('${l.translate('startDate')}: ${_formatDate(s.dataIncepere!)}',
+                    style: ApprovalTheme.textBody(context)),
+              Text('${l.translate('orders')}: ${comenzi.length}',
+                  style: ApprovalTheme.textBody(context)),
             ],
           ),
         ),
@@ -644,14 +482,12 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
                   color: ApprovalTheme.borderColor(context),
                   width: ApprovalTheme.borderWidth,
                 ),
-                borderRadius:
-                BorderRadius.circular(ApprovalTheme.radiusSmall),
+                borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
               ),
               child: Text(
                 s.status.displayLabel,
-                style: ApprovalTheme.textBody(context).copyWith(
-                  fontWeight: ApprovalTheme.fontWeightBold,
-                ),
+                style: ApprovalTheme.textBody(context)
+                    .copyWith(fontWeight: ApprovalTheme.fontWeightBold),
               ),
             ),
             IconButton(
@@ -666,10 +502,7 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     );
   }
 
-  // =============================================================================
-  // GENERARE PDF
-  // =============================================================================
-
+  // Generare PDF
   Future<pw.Document> _buildDocument(List<Santier> santiere) async {
     final font = await _getFont();
     final pdf  = pw.Document();
@@ -706,14 +539,8 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(
-              'RAPORT ȘANTIERE',
-              style: pw.TextStyle(
-                font: font,
-                fontSize: 14,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
+            pw.Text('RAPORT ȘANTIERE',
+                style: pw.TextStyle(font: font, fontSize: 14, fontWeight: pw.FontWeight.bold)),
           ],
         ),
         pw.SizedBox(height: 2),
@@ -739,8 +566,7 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Container(
-          width: 12,
-          height: 12,
+          width: 12, height: 12,
           decoration: pw.BoxDecoration(
             color: _hexToPdfColor(s.color),
             borderRadius: pw.BorderRadius.circular(2),
@@ -748,24 +574,12 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
         ),
         pw.SizedBox(width: 6),
         pw.Expanded(
-          child: pw.Text(
-            s.denumire.toUpperCase(),
-            style: pw.TextStyle(
-              font: font,
-              fontSize: 13,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
+          child: pw.Text(s.denumire.toUpperCase(),
+              style: pw.TextStyle(font: font, fontSize: 13, fontWeight: pw.FontWeight.bold)),
         ),
-        pw.Text(
-          s.status.displayLabel.toUpperCase(),
-          style: pw.TextStyle(
-            font: font,
-            fontSize: 9,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
+        pw.Text(s.status.displayLabel.toUpperCase(),
+            style: pw.TextStyle(font: font, fontSize: 9,
+                fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
       ],
     );
   }
@@ -790,18 +604,10 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _infoRow(
-                'Data începere:',
-                s.dataIncepere != null ? _formatDate(s.dataIncepere!) : '-',
-                font,
-              ),
-              _infoRow(
-                'Data finalizare:',
-                s.dataFinalizare != null
-                    ? _formatDate(s.dataFinalizare!)
-                    : '-',
-                font,
-              ),
+              _infoRow('Data începere:',
+                  s.dataIncepere != null ? _formatDate(s.dataIncepere!) : '-', font),
+              _infoRow('Data finalizare:',
+                  s.dataFinalizare != null ? _formatDate(s.dataFinalizare!) : '-', font),
               _infoRow('Nr. comenzi:', '$nrComenzi', font),
             ],
           ),
@@ -818,23 +624,13 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
         children: [
           pw.SizedBox(
             width: 90,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(
-                font: font,
-                fontSize: 9,
-                color: PdfColors.grey600,
-              ),
-              maxLines: 1,
-              softWrap: false,
-            ),
+            child: pw.Text(label,
+                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600),
+                maxLines: 1, softWrap: false),
           ),
           pw.Expanded(
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(font: font, fontSize: 9),
-              maxLines: 2,
-            ),
+            child: pw.Text(value,
+                style: pw.TextStyle(font: font, fontSize: 9), maxLines: 2),
           ),
         ],
       ),
@@ -845,14 +641,8 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          'COMENZI VEHICULE:',
-          style: pw.TextStyle(
-            font: font,
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
+        pw.Text('COMENZI VEHICULE:',
+            style: pw.TextStyle(font: font, fontSize: 10, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 4),
         if (comenzi.isEmpty)
           pw.Container(
@@ -861,14 +651,8 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
               border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
               borderRadius: pw.BorderRadius.circular(3),
             ),
-            child: pw.Text(
-              'Nu există comenzi pentru acest șantier.',
-              style: pw.TextStyle(
-                font: font,
-                fontSize: 9,
-                color: PdfColors.grey500,
-              ),
-            ),
+            child: pw.Text('Nu există comenzi pentru acest șantier.',
+                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey500)),
           )
         else
           pw.Table(
@@ -883,8 +667,7 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
             },
             children: [
               pw.TableRow(
-                decoration:
-                const pw.BoxDecoration(color: PdfColors.grey200),
+                decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                 children: [
                   _th('Model vehicul', font),
                   _th('Clasă', font),
@@ -894,95 +677,64 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
                   _th('Creat de', font),
                 ],
               ),
-              ...comenzi.map(
-                    (c) => pw.TableRow(
-                  children: [
-                    _td(c.vehicleModel, font),
-                    _td(c.vehicleClasa, font),
-                    _td(_formatDate(c.dataStart), font,
-                        align: pw.TextAlign.center),
-                    _td(_formatDate(c.dataFinal), font,
-                        align: pw.TextAlign.center),
-                    _tdStatus(c.status, font),
-                    _td(c.creatDeNume, font),
-                  ],
-                ),
-              ),
+              ...comenzi.map((c) => pw.TableRow(
+                children: [
+                  _td(c.vehicleModel, font),
+                  _td(c.vehicleClasa, font),
+                  _td(_formatDate(c.dataStart), font, align: pw.TextAlign.center),
+                  _td(_formatDate(c.dataFinal), font, align: pw.TextAlign.center),
+                  _tdStatus(c.status, font),
+                  _td(c.creatDeNume, font),
+                ],
+              )),
             ],
           ),
         ...comenzi
             .where((c) => c.note != null && c.note!.isNotEmpty)
-            .map(
-              (c) => pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 4),
-            child: pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'Notă (${c.vehicleModel}): ',
-                  style: pw.TextStyle(
-                    font: font,
-                    fontSize: 8,
-                    color: PdfColors.grey700,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.Expanded(
-                  child: pw.Text(
-                    c.note!,
-                    style: pw.TextStyle(font: font, fontSize: 8),
-                  ),
-                ),
-              ],
-            ),
+            .map((c) => pw.Padding(
+          padding: const pw.EdgeInsets.only(top: 4),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Notă (${c.vehicleModel}): ',
+                  style: pw.TextStyle(font: font, fontSize: 8,
+                      color: PdfColors.grey700, fontWeight: pw.FontWeight.bold)),
+              pw.Expanded(
+                child: pw.Text(c.note!,
+                    style: pw.TextStyle(font: font, fontSize: 8)),
+              ),
+            ],
           ),
-        ),
+        )),
       ],
     );
   }
 
-  pw.Widget _th(String text, pw.Font font,
-      [pw.TextAlign align = pw.TextAlign.left]) {
+  pw.Widget _th(String text, pw.Font font, [pw.TextAlign align = pw.TextAlign.left]) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          font: font,
-          fontSize: 8,
-          fontWeight: pw.FontWeight.bold,
-        ),
-        textAlign: align,
-      ),
+      child: pw.Text(text,
+          style: pw.TextStyle(font: font, fontSize: 8, fontWeight: pw.FontWeight.bold),
+          textAlign: align),
     );
   }
 
-  pw.Widget _td(String text, pw.Font font,
-      {pw.TextAlign align = pw.TextAlign.left}) {
+  pw.Widget _td(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(font: font, fontSize: 8),
-        textAlign: align,
-        maxLines: 2,
-      ),
+      child: pw.Text(text,
+          style: pw.TextStyle(font: font, fontSize: 8),
+          textAlign: align, maxLines: 2),
     );
   }
 
   pw.Widget _tdStatus(ComandaStatus status, pw.Font font) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: pw.Text(
-        status.displayLabel,
-        style: pw.TextStyle(
-          font: font,
-          fontSize: 8,
-          fontWeight: pw.FontWeight.bold,
-          color: PdfColors.black,
-        ),
-        textAlign: pw.TextAlign.center,
-      ),
+      child: pw.Text(status.displayLabel,
+          style: pw.TextStyle(font: font, fontSize: 8,
+              fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+          textAlign: pw.TextAlign.center),
     );
   }
 
@@ -993,31 +745,23 @@ class _SantierPdfTabState extends State<SantierPdfTab> {
 
   PdfColor _hexToPdfColor(String hex) {
     try {
-      final clean = hex.replaceAll('#', '');
-      final value = int.parse(clean, radix: 16);
-      final r = ((value >> 16) & 0xFF) / 255.0;
-      final g = ((value >> 8) & 0xFF) / 255.0;
-      final b = (value & 0xFF) / 255.0;
-      return PdfColor(r, g, b);
+      final value = int.parse(hex.replaceAll('#', ''), radix: 16);
+      return PdfColor(
+        ((value >> 16) & 0xFF) / 255.0,
+        ((value >> 8)  & 0xFF) / 255.0,
+        (value & 0xFF)         / 255.0,
+      );
     } catch (_) {
       return PdfColors.blue700;
     }
   }
 }
 
-// =============================================================================
-// _PdfFilter — model date filtru
-// =============================================================================
-
 class _PdfFilter {
   final SantierStatus? status;
   final DateTimeRange? dateRange;
   const _PdfFilter({this.status, this.dateRange});
 }
-
-// =============================================================================
-// _PdfFilterSheet — bottom sheet cu status chips + perioadă, identic santiere
-// =============================================================================
 
 class _PdfFilterSheet extends StatefulWidget {
   final _PdfFilter current;
@@ -1042,11 +786,10 @@ class _PdfFilterSheetState extends State<_PdfFilterSheet> {
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   Future<void> _pickDateRange() async {
-    final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
-      lastDate: now,
+      lastDate: DateTime.now(),
       initialDateRange: _dateRange,
     );
     if (picked != null) setState(() => _dateRange = picked);
@@ -1062,151 +805,77 @@ class _PdfFilterSheetState extends State<_PdfFilterSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(children: [
-        // Handle
-        Column(mainAxisSize: MainAxisSize.min, children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: ApprovalTheme.borderColor(context),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ]),
-
-        // Header
+        const _SheetHandle(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
-            Text('Filtru PDF', style: ApprovalTheme.textTitle(context)),
+            Text(AppLocalizations.of(context).translate('filterPdf'), style: ApprovalTheme.textTitle(context)),
             const Spacer(),
             TextButton(
-              onPressed: () => setState(() {
-                _status    = null;
-                _dateRange = null;
-              }),
-              child: const Text('Resetează'),
+              onPressed: () => setState(() { _status = null; _dateRange = null; }),
+              child: Text(AppLocalizations.of(context).translate('reset')),
             ),
           ]),
         ),
         const Divider(height: 1),
-
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ── Status dropdown — identic cu _FilterDropdown din santiere_list_page
                 DropdownButtonFormField<SantierStatus?>(
                   value: _status,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    labelStyle: ApprovalTheme.textBody(context),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(ApprovalTheme.radiusSmall),
-                      borderSide:
-                      BorderSide(color: ApprovalTheme.borderColor(context)),
-                    ),
-                    filled: true,
-                    fillColor: ApprovalTheme.surfaceBackground(context),
-                    isDense: true,
-                  ),
+                  decoration: _dropdownDecoration(context, AppLocalizations.of(context).translate('status')),
                   style: ApprovalTheme.textBody(context),
                   dropdownColor: ApprovalTheme.surfaceBackground(context),
                   items: [
                     DropdownMenuItem<SantierStatus?>(
                       value: null,
-                      child: Text('Toate',
-                          style: ApprovalTheme.textBody(context)),
+                      child: Text(AppLocalizations.of(context).translate('all'), style: ApprovalTheme.textBody(context)),
                     ),
-                    ...SantierStatus.values.map((s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s.displayLabel,
-                          style: ApprovalTheme.textBody(context)),
-                    )),
+                    ...SantierStatus.values.map((s) {
+                      final key = switch (s) {
+                        SantierStatus.activ     => 'statusActiv',
+                        SantierStatus.suspendat => 'statusSuspendat',
+                        SantierStatus.arhivat   => 'statusArhivat',
+                      };
+                      return DropdownMenuItem(
+                        value: s,
+                        child: Text(AppLocalizations.of(context).translate(key), style: ApprovalTheme.textBody(context)),
+                      );
+                    }),
                   ],
                   onChanged: (v) => setState(() => _status = v),
                 ),
-
                 const SizedBox(height: 16),
-
-                // ── Perioadă creare
-                Text('Perioadă creare', style: ApprovalTheme.textBody(context)),
+                Text(AppLocalizations.of(context).translate('perioadaCreare'), style: ApprovalTheme.textBody(context)),
                 const SizedBox(height: 6),
-                InkWell(
+                _DateRangeTile(
+                  value: _dateRange,
                   onTap: _pickDateRange,
-                  borderRadius:
-                  BorderRadius.circular(ApprovalTheme.radiusSmall),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: ApprovalTheme.borderColor(context)),
-                      borderRadius: BorderRadius.circular(
-                          ApprovalTheme.radiusSmall),
-                      color: ApprovalTheme.surfaceBackground(context),
-                    ),
-                    child: Row(children: [
-                      Icon(Icons.date_range_outlined,
-                          size: 18,
-                          color: ApprovalTheme.textSecondary(context)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _dateRange != null
-                              ? '${_fmtDate(_dateRange!.start)} – ${_fmtDate(_dateRange!.end)}'
-                              : 'Orice dată',
-                          style: ApprovalTheme.textBody(context).copyWith(
-                            color: _dateRange != null
-                                ? null
-                                : ApprovalTheme.textSecondary(context),
-                          ),
-                        ),
-                      ),
-                      if (_dateRange != null)
-                        GestureDetector(
-                          onTap: () => setState(() => _dateRange = null),
-                          child: Icon(Icons.close,
-                              size: 16,
-                              color: ApprovalTheme.textSecondary(context)),
-                        ),
-                    ]),
-                  ),
+                  onClear: () => setState(() => _dateRange = null),
+                  fmtDate: _fmtDate,
                 ),
               ],
             ),
           ),
         ),
-
         Padding(
           padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + mq.viewInsets.bottom),
           child: SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                _PdfFilter(status: _status, dateRange: _dateRange),
-              ),
+              onPressed: () => Navigator.pop(context,
+                  _PdfFilter(status: _status, dateRange: _dateRange)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                        ApprovalTheme.radiusMedium)),
+                    borderRadius: BorderRadius.circular(ApprovalTheme.radiusMedium)),
               ),
-              child: const Text('Aplică filtrul'),
+              child: Text(AppLocalizations.of(context).translate('applyFilter')),
             ),
           ),
         ),
@@ -1215,49 +884,156 @@ class _PdfFilterSheetState extends State<_PdfFilterSheet> {
   }
 }
 
-// =============================================================================
-// _StatusChip — OutlinedButton cu selected state, identic în toate paginile
-// =============================================================================
+// Shared UI helpers
+class _ActiveFilterButton extends StatelessWidget {
+  final bool isActive;
+  final int filterCount;
+  final VoidCallback onPressed;
 
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _StatusChip({
-    required this.label,
-    required this.color,
-    required this.selected,
-    required this.onTap,
+  const _ActiveFilterButton({
+    required this.isActive,
+    required this.filterCount,
+    required this.onPressed,
   });
 
   @override
-  Widget build(BuildContext context) => OutlinedButton(
-    onPressed: onTap,
-    style: OutlinedButton.styleFrom(
-      side: BorderSide(color: color, width: selected ? 2.0 : 1.4),
-      foregroundColor: color,
-      backgroundColor:
-      selected ? color.withOpacity(0.12) : Colors.transparent,
-      padding:
-      const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-      shape: RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.circular(ApprovalTheme.radiusSmall)),
-      minimumSize: Size.zero,
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    ),
-    child: Text(
-      label,
-      style: TextStyle(
-        fontSize: 11,
-        color: color,
-        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+  Widget build(BuildContext context) {
+    final color = isActive
+        ? Theme.of(context).colorScheme.primary
+        : ApprovalTheme.textSecondary(context);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: color, width: 1.4),
+            foregroundColor: color,
+            backgroundColor: isActive ? color.withOpacity(0.07) : Colors.transparent,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.filter_list, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                isActive
+                    ? '${AppLocalizations.of(context).translate('filter')} ($filterCount)'
+                    : AppLocalizations.of(context).translate('filter'),
+                style: TextStyle(fontSize: 12, color: color),
+              ),
+            ],
+          ),
+        ),
+        if (isActive)
+          Positioned(
+            top: -3, right: -3,
+            child: Container(
+              width: 8, height: 8,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor, width: 1.5),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SheetHandle extends StatelessWidget {
+  const _SheetHandle();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const SizedBox(height: 8),
+      Container(
+        width: 40, height: 4,
+        decoration: BoxDecoration(
+          color: ApprovalTheme.borderColor(context),
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.center,
+      const SizedBox(height: 12),
+    ],
+  );
+}
+
+class _DateRangeTile extends StatelessWidget {
+  final DateTimeRange? value;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+  final String Function(DateTime) fmtDate;
+
+  const _DateRangeTile({
+    required this.value,
+    required this.onTap,
+    required this.onClear,
+    required this.fmtDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: ApprovalTheme.borderColor(context)),
+          borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+          color: ApprovalTheme.surfaceBackground(context),
+        ),
+        child: Row(children: [
+          Icon(Icons.date_range_outlined,
+              size: 18, color: ApprovalTheme.textSecondary(context)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value != null
+                  ? '${fmtDate(value!.start)} – ${fmtDate(value!.end)}'
+                  : AppLocalizations.of(context).translate('oriceData'),
+              style: ApprovalTheme.textBody(context).copyWith(
+                color: value != null ? null : ApprovalTheme.textSecondary(context),
+              ),
+            ),
+          ),
+          if (value != null)
+            GestureDetector(
+              onTap: onClear,
+              child: Icon(Icons.close, size: 16,
+                  color: ApprovalTheme.textSecondary(context)),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+InputDecoration _dropdownDecoration(BuildContext context, String label) {
+  return InputDecoration(
+    labelText: label,
+    labelStyle: ApprovalTheme.textBody(context),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+      borderSide: BorderSide(color: ApprovalTheme.borderColor(context)),
     ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+      borderSide: BorderSide(color: ApprovalTheme.borderColor(context)),
+    ),
+    filled: true,
+    fillColor: ApprovalTheme.surfaceBackground(context),
+    isDense: true,
   );
 }

@@ -2,28 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '/models/comanda_model.dart';
 import '/services/comanda_service.dart';
-import '/models/occupancy_period.dart';
 import '/models/santier_model.dart';
 import '/approval_theme.dart';
 import '/models/user.dart';
 import '/widgets/comanda_form_sheet.dart';
 import '/services/santier_service.dart';
+import '/app_localizations.dart';
 import 'santiere_list_page.dart';
 
 final _dateFmt      = DateFormat('dd.MM.yyyy HH:mm');
 final _dateFmtShort = DateFormat('dd.MM.yyyy');
 
-String _formatDateRangeShort(DateTime? start, DateTime? end) {
-  if (start == null && end == null) return 'Dată nespecificată';
+String _formatDateRangeShort(DateTime? start, DateTime? end, AppLocalizations l) {
+  if (start == null && end == null) return l.translate('dateUnspecified');
   if (start == null) return '– ${_dateFmtShort.format(end!)}';
   if (end == null) return '${_dateFmtShort.format(start)} –';
   return '${_dateFmtShort.format(start)} – ${_dateFmtShort.format(end)}';
 }
 
-// =============================================================================
-// SantierDetailPage
-// =============================================================================
+Color _santierStatusColor(SantierStatus status) => switch (status) {
+  SantierStatus.activ     => const Color(0xFF1A6B3C),
+  SantierStatus.suspendat => ApprovalTheme.errorColorLight,
+  SantierStatus.arhivat   => ApprovalTheme.textSecondaryLight,
+};
 
+Color _santierRowColor(BuildContext context, SantierStatus status) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return switch (status) {
+    SantierStatus.activ     => isDark ? const Color(0xFF1B3A24) : const Color(0xFFD4EDDA),
+    SantierStatus.suspendat => isDark ? const Color(0xFF3D0000) : const Color(0xFFF8D7DA),
+    SantierStatus.arhivat   => isDark ? ApprovalTheme.cardBackground(context) : Colors.white,
+  };
+}
+
+// SantierDetailPage
 class SantierDetailPage extends StatefulWidget {
   final String santierId;
   final User currentUser;
@@ -52,7 +64,8 @@ class _SantierDetailPageState extends State<SantierDetailPage> {
           }
           final santier = santierSnap.data;
           if (santier == null) {
-            return const Center(child: Text('Șantierul nu a fost găsit.'));
+            final l = AppLocalizations.of(ctx);
+            return Center(child: Text(l.translate('santierNotFound')));
           }
           _santier = santier;
 
@@ -76,7 +89,7 @@ class _SantierDetailPageState extends State<SantierDetailPage> {
         onPressed: _openCreateComandaSheet,
         backgroundColor: ApprovalTheme.primaryAccent(context),
         icon: const Icon(Icons.add),
-        label: const Text('Comandă nouă'),
+        label: Text(AppLocalizations.of(context).translate('newComanda')),
       ),
     );
   }
@@ -97,21 +110,18 @@ class _SantierDetailPageState extends State<SantierDetailPage> {
   }
 }
 
-// =============================================================================
 // _SantierHeader
-// =============================================================================
-
 class _SantierHeader extends StatelessWidget {
   final Santier santier;
   final User currentUser;
 
   const _SantierHeader({required this.santier, required this.currentUser});
 
-  // Userul poate edita doar propriul șantier.
   bool get _canEdit => santier.creatDeUserId == currentUser.uid;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final barColor = _santierStatusColor(santier.status);
 
     return Column(
@@ -121,7 +131,7 @@ class _SantierHeader extends StatelessWidget {
           title: Row(children: [
             GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: Text('Șantiere',
+              child: Text(l.translate('santiere'),
                   style: ApprovalTheme.textSmall(context)
                       .copyWith(color: ApprovalTheme.primaryAccent(context))),
             ),
@@ -136,7 +146,7 @@ class _SantierHeader extends StatelessWidget {
             if (_canEdit)
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Editează șantier',
+                tooltip: l.translate('editSantier'),
                 onPressed: () => _openEditSheet(context),
               ),
           ],
@@ -145,8 +155,7 @@ class _SantierHeader extends StatelessWidget {
           margin: const EdgeInsets.fromLTRB(10, 4, 10, 8),
           decoration: BoxDecoration(
             color: _santierRowColor(context, santier.status),
-            borderRadius:
-            BorderRadius.circular(ApprovalTheme.radiusMedium),
+            borderRadius: BorderRadius.circular(ApprovalTheme.radiusMedium),
             border: Border.all(
                 color: ApprovalTheme.borderColor(context),
                 width: ApprovalTheme.borderWidth),
@@ -171,30 +180,19 @@ class _SantierHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Spacer(),
-                          _SantierStatusBadge(status: santier.status),
-                          const SizedBox(width: 12),
-                        ],
-                      ),
+                      Row(children: [
+                        const Spacer(),
+                        _SantierStatusBadge(status: santier.status),
+                        const SizedBox(width: 12),
+                      ]),
                       const SizedBox(height: 4),
-                      _InfoRow(
-                          icon: Icons.location_on_outlined,
-                          text: santier.locatie,
-                          context: context),
+                      _InfoRow(icon: Icons.location_on_outlined,     text: santier.locatie),
                       const SizedBox(height: 3),
-                      _InfoRow(
-                          icon: Icons.calendar_today_outlined,
-                          text: _formatDateRangeShort(
-                              santier.dataIncepere, santier.dataFinalizare),
-                          context: context),
+                      _InfoRow(icon: Icons.calendar_today_outlined,
+                          text: _formatDateRangeShort(santier.dataIncepere, santier.dataFinalizare, l)),
                       const SizedBox(height: 3),
-                      _InfoRow(
-                          icon: Icons.person_outline,
-                          text: 'Creat de: ${santier.creatDeNume}',
-                          context: context),
+                      _InfoRow(icon: Icons.person_outline,
+                          text: '${l.translate('createdBy')}: ${santier.creatDeNume}'),
                     ],
                   ),
                 ),
@@ -223,25 +221,18 @@ class _SantierHeader extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String text;
-  final BuildContext context;
 
-  const _InfoRow(
-      {required this.icon, required this.text, required this.context});
+  const _InfoRow({required this.icon, required this.text});
 
   @override
-  Widget build(BuildContext outerContext) {
-    return Row(children: [
-      Icon(icon, size: 13, color: ApprovalTheme.textSecondary(context)),
-      const SizedBox(width: 4),
-      Expanded(child: Text(text, style: ApprovalTheme.textSmall(context))),
-    ]);
-  }
+  Widget build(BuildContext context) => Row(children: [
+    Icon(icon, size: 13, color: ApprovalTheme.textSecondary(context)),
+    const SizedBox(width: 4),
+    Expanded(child: Text(text, style: ApprovalTheme.textSmall(context))),
+  ]);
 }
 
-// =============================================================================
 // _ComenziBody
-// =============================================================================
-
 class _ComenziBody extends StatelessWidget {
   final Santier santier;
   final User currentUser;
@@ -264,7 +255,7 @@ class _ComenziBody extends StatelessWidget {
                 Icon(Icons.cloud_off_outlined,
                     size: 48, color: ApprovalTheme.errorColor(context)),
                 const SizedBox(height: 12),
-                Text('Eroare: ${snap.error}',
+                Text('${AppLocalizations.of(context).translate('eroare')}: ${snap.error}',
                     style: ApprovalTheme.textBody(context),
                     textAlign: TextAlign.center),
               ]),
@@ -280,52 +271,38 @@ class _ComenziBody extends StatelessWidget {
               Icon(Icons.inbox_outlined,
                   size: 48, color: ApprovalTheme.textSecondary(context)),
               const SizedBox(height: 12),
-              Text('Nicio comandă pentru acest șantier.',
+              Text(AppLocalizations.of(context).translate('noComandaSantier'),
                   style: ApprovalTheme.textBody(context)),
             ]),
           );
         }
 
-        final activ = all
-            .where((c) => c.vizibilitate == ComandaVizibilitate.activActiv)
-            .toList();
-        final planificat = all
-            .where(
-                (c) => c.vizibilitate == ComandaVizibilitate.activPlanificat)
-            .toList();
-        final pending = all
-            .where((c) =>
-        c.vizibilitate == ComandaVizibilitate.neaprobatPending)
-            .toList();
+        final activ      = all.where((c) => c.vizibilitate == ComandaVizibilitate.activActiv).toList();
+        final planificat = all.where((c) => c.vizibilitate == ComandaVizibilitate.activPlanificat).toList();
+        final pending    = all.where((c) => c.vizibilitate == ComandaVizibilitate.neaprobatPending).toList();
 
         return ListView(
           padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).padding.bottom + 80),
           children: [
             if (activ.isNotEmpty) ...[
-              _SectionHeader(title: 'Activ', count: activ.length),
+              _SectionHeader(title: AppLocalizations.of(context).translate('activ'), count: activ.length),
               ...activ.map((c) => _ComandaCard(
-                comanda: c,
-                santier: santier,
-                currentUser: currentUser,
+                comanda: c, santier: santier, currentUser: currentUser,
                 vizType: ComandaVizibilitate.activActiv,
               )),
             ],
             if (planificat.isNotEmpty) ...[
-              _SectionHeader(title: 'Planificat', count: planificat.length),
+              _SectionHeader(title: AppLocalizations.of(context).translate('planificat'), count: planificat.length),
               ...planificat.map((c) => _ComandaCard(
-                comanda: c,
-                santier: santier,
-                currentUser: currentUser,
+                comanda: c, santier: santier, currentUser: currentUser,
                 vizType: ComandaVizibilitate.activPlanificat,
               )),
             ],
             if (pending.isNotEmpty) ...[
-              _SectionHeader(title: 'În așteptare', count: pending.length),
+              _SectionHeader(title: AppLocalizations.of(context).translate('asteptare'), count: pending.length),
               ...pending.map((c) => _ComandaCard(
-                comanda: c,
-                santier: santier,
-                currentUser: currentUser,
+                comanda: c, santier: santier, currentUser: currentUser,
                 vizType: ComandaVizibilitate.neaprobatPending,
               )),
             ],
@@ -336,10 +313,7 @@ class _ComenziBody extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _SectionHeader
-// =============================================================================
-
 class _SectionHeader extends StatelessWidget {
   final String title;
   final int count;
@@ -374,10 +348,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _ComandaCard
-// =============================================================================
-
 class _ComandaCard extends StatelessWidget {
   final Comanda comanda;
   final Santier santier;
@@ -391,38 +362,24 @@ class _ComandaCard extends StatelessWidget {
     required this.vizType,
   });
 
-  Color _barColor(BuildContext context) {
-    switch (comanda.status) {
-      case ComandaStatus.aprobat:
-        return vizType == ComandaVizibilitate.activActiv
-            ? const Color(0xFF1A6B3C)
-            : const Color(0xFF1565C0);
-      case ComandaStatus.respins:
-        return ApprovalTheme.errorColor(context);
-      case ComandaStatus.pending:
-        return Colors.orange;
-    }
-  }
+  Color _barColor(BuildContext context) => switch (comanda.status) {
+    ComandaStatus.aprobat => vizType == ComandaVizibilitate.activActiv
+        ? const Color(0xFF1A6B3C) : const Color(0xFF1565C0),
+    ComandaStatus.respins => ApprovalTheme.errorColor(context),
+    ComandaStatus.pending => Colors.orange,
+  };
 
   Color _bgColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    switch (comanda.status) {
-      case ComandaStatus.aprobat:
-        return vizType == ComandaVizibilitate.activActiv
-            ? (isDark
-            ? const Color(0xFF1B3A24)
-            : const Color(0xFFD4EDDA))
-            : (isDark
-            ? const Color(0xFF0A2A4D)
-            : const Color(0xFFD6E9FF));
-      case ComandaStatus.respins:
-        return isDark ? const Color(0xFF3D0000) : const Color(0xFFF8D7DA);
-      case ComandaStatus.pending:
-        return isDark ? const Color(0xFF3D2E00) : const Color(0xFFFFF3CD);
-    }
+    return switch (comanda.status) {
+      ComandaStatus.aprobat => vizType == ComandaVizibilitate.activActiv
+          ? (isDark ? const Color(0xFF1B3A24) : const Color(0xFFD4EDDA))
+          : (isDark ? const Color(0xFF0A2A4D) : const Color(0xFFD6E9FF)),
+      ComandaStatus.respins => isDark ? const Color(0xFF3D0000) : const Color(0xFFF8D7DA),
+      ComandaStatus.pending => isDark ? const Color(0xFF3D2E00) : const Color(0xFFFFF3CD),
+    };
   }
 
-  // Userul poate edita propria comandă dacă nu e respinsă.
   bool get _canEdit =>
       comanda.status != ComandaStatus.respins &&
           currentUser.uid == comanda.creatDeUserId;
@@ -473,40 +430,20 @@ class _ComandaCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
-                    Row(children: [
-                      Icon(Icons.category_outlined,
-                          size: 11,
-                          color: ApprovalTheme.textSecondary(context)),
-                      const SizedBox(width: 2),
-                      Text(comanda.vehicleClasa,
-                          style: ApprovalTheme.textSmall(context)),
-                    ]),
+                    _IconText(icon: Icons.category_outlined, text: comanda.vehicleClasa),
                     const SizedBox(height: 2),
-                    Row(children: [
-                      Icon(Icons.date_range_outlined,
-                          size: 11,
-                          color: ApprovalTheme.textSecondary(context)),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${_dateFmtShort.format(comanda.dataStart)} – '
-                            '${_dateFmtShort.format(comanda.dataFinal)}',
-                        style: ApprovalTheme.textSmall(context),
-                      ),
-                    ]),
+                    _IconText(
+                      icon: Icons.date_range_outlined,
+                      text: '${_dateFmtShort.format(comanda.dataStart)} – '
+                          '${_dateFmtShort.format(comanda.dataFinal)}',
+                    ),
                     if (comanda.note != null && comanda.note!.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Row(children: [
-                        Icon(Icons.notes_outlined,
-                            size: 11,
-                            color: ApprovalTheme.textSecondary(context)),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(comanda.note!,
-                              style: ApprovalTheme.textSmall(context),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                      ]),
+                      _IconText(
+                        icon: Icons.notes_outlined,
+                        text: comanda.note!,
+                        ellipsis: true,
+                      ),
                     ],
                   ],
                 ),
@@ -521,55 +458,54 @@ class _ComandaCard extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// _ComandaBadge
-// =============================================================================
+class _IconText extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final bool ellipsis;
+  const _IconText({required this.icon, required this.text, this.ellipsis = false});
 
+  @override
+  Widget build(BuildContext context) => Row(children: [
+    Icon(icon, size: 11, color: ApprovalTheme.textSecondary(context)),
+    const SizedBox(width: 2),
+    Expanded(
+      child: Text(text,
+          style: ApprovalTheme.textSmall(context),
+          maxLines: ellipsis ? 1 : null,
+          overflow: ellipsis ? TextOverflow.ellipsis : null),
+    ),
+  ]);
+}
+
+// _ComandaBadge
 class _ComandaBadge extends StatelessWidget {
   final Comanda comanda;
   final ComandaVizibilitate vizType;
   const _ComandaBadge({required this.comanda, required this.vizType});
 
-  String get _label {
-    switch (comanda.status) {
-      case ComandaStatus.respins:
-        return 'Respins';
-      case ComandaStatus.pending:
-        return 'Așteptare';
-      case ComandaStatus.aprobat:
-        return vizType == ComandaVizibilitate.activActiv
-            ? 'Activ'
-            : 'Planificat';
-    }
-  }
+  String _label(AppLocalizations l) => switch (comanda.status) {
+    ComandaStatus.respins => l.translate('rejected'),
+    ComandaStatus.pending => l.translate('asteptare'),
+    ComandaStatus.aprobat => vizType == ComandaVizibilitate.activActiv
+        ? l.translate('activ') : l.translate('planificat'),
+  };
 
-  Color get _color {
-    switch (comanda.status) {
-      case ComandaStatus.aprobat:
-        return vizType == ComandaVizibilitate.activActiv
-            ? const Color(0xFF1A6B3C)
-            : const Color(0xFF1565C0);
-      case ComandaStatus.respins:
-        return ApprovalTheme.errorColorLight;
-      case ComandaStatus.pending:
-        return Colors.orange;
-    }
-  }
+  Color get _color => switch (comanda.status) {
+    ComandaStatus.aprobat => vizType == ComandaVizibilitate.activActiv
+        ? const Color(0xFF1A6B3C) : const Color(0xFF1565C0),
+    ComandaStatus.respins => ApprovalTheme.errorColorLight,
+    ComandaStatus.pending => Colors.orange,
+  };
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: ApprovalTheme.badgeDecoration(_color),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Text(_label, style: ApprovalTheme.badgeTextStyle(_color)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    decoration: ApprovalTheme.badgeDecoration(_color),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    child: Text(_label(AppLocalizations.of(context)), style: ApprovalTheme.badgeTextStyle(_color)),
+  );
 }
 
-// =============================================================================
 // _ComandaDetailSheet
-// =============================================================================
-
 class _ComandaDetailSheet extends StatelessWidget {
   final Comanda comanda;
   final Santier santier;
@@ -597,9 +533,8 @@ class _ComandaDetailSheet extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
-            Expanded(
-                child: Text(comanda.vehicleModel,
-                    style: ApprovalTheme.textTitle(context))),
+            Expanded(child: Text(comanda.vehicleModel,
+                style: ApprovalTheme.textTitle(context))),
             _ComandaBadge(comanda: comanda, vizType: comanda.vizibilitate),
           ]),
         ),
@@ -607,61 +542,56 @@ class _ComandaDetailSheet extends StatelessWidget {
         const Divider(height: 1),
         Expanded(
           child: SingleChildScrollView(
-            padding:
-            EdgeInsets.fromLTRB(16, 12, 16, mq.viewInsets.bottom + 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _DetailRow(label: 'Clasă', value: comanda.vehicleClasa),
-                _DetailRow(
-                    label: 'Start',
-                    value: _dateFmt.format(comanda.dataStart)),
-                _DetailRow(
-                    label: 'Final',
-                    value: _dateFmt.format(comanda.dataFinal)),
-                _DetailRow(label: 'Creat de', value: comanda.creatDeNume),
-                _DetailRow(
-                    label: 'Creat la',
-                    value: _dateFmt.format(comanda.createdAt)),
-                if (comanda.note != null && comanda.note!.isNotEmpty)
-                  _DetailRow(label: 'Note', value: comanda.note!),
-                if (comanda.status == ComandaStatus.respins &&
-                    comanda.motivRespingere != null) ...[
-                  const SizedBox(height: 4),
-                  _DetailRow(
-                    label: 'Motiv respingere',
-                    value: comanda.motivRespingere!,
-                    valueColor: ApprovalTheme.errorColorLight,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                if (canEdit)
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Editează comanda'),
-                      style: ApprovalTheme.primaryButtonStyle(context),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => ComandaFormSheet(
-                            santierId: santier.id,
-                            santierNume: santier.denumire,
-                            santierDataIncepere:
-                            santier.dataIncepere ?? DateTime.now(),
-                            currentUser: currentUser,
-                            existingComanda: comanda,
-                          ),
-                        );
-                      },
+            padding: EdgeInsets.fromLTRB(16, 12, 16, mq.viewInsets.bottom + 16),
+            child: Builder(builder: (context) {
+              final l = AppLocalizations.of(context);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DetailRow(label: l.translate('vehicleClass'), value: comanda.vehicleClasa),
+                  _DetailRow(label: l.translate('start'),        value: _dateFmt.format(comanda.dataStart)),
+                  _DetailRow(label: l.translate('end'),          value: _dateFmt.format(comanda.dataFinal)),
+                  _DetailRow(label: l.translate('createdBy'),    value: comanda.creatDeNume),
+                  _DetailRow(label: l.translate('createdAt'),    value: _dateFmt.format(comanda.createdAt)),
+                  if (comanda.note != null && comanda.note!.isNotEmpty)
+                    _DetailRow(label: l.translate('notes'), value: comanda.note!),
+                  if (comanda.status == ComandaStatus.respins &&
+                      comanda.motivRespingere != null) ...[
+                    const SizedBox(height: 4),
+                    _DetailRow(
+                      label: l.translate('motivRespingere'),
+                      value: comanda.motivRespingere!,
+                      valueColor: ApprovalTheme.errorColorLight,
                     ),
-                  ),
-              ],
-            ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (canEdit)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: Text(l.translate('editComanda')),
+                        style: ApprovalTheme.primaryButtonStyle(context),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => ComandaFormSheet(
+                              santierId: santier.id,
+                              santierNume: santier.denumire,
+                              santierDataIncepere: santier.dataIncepere ?? DateTime.now(),
+                              currentUser: currentUser,
+                              existingComanda: comanda,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              );
+            }),
           ),
         ),
       ]),
@@ -669,17 +599,13 @@ class _ComandaDetailSheet extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _DetailRow
-// =============================================================================
-
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final Color? valueColor;
 
-  const _DetailRow(
-      {required this.label, required this.value, this.valueColor});
+  const _DetailRow({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -696,9 +622,7 @@ class _DetailRow extends StatelessWidget {
           child: Text(value,
               style: ApprovalTheme.textSmall(context).copyWith(
                 color: valueColor,
-                fontWeight: valueColor != null
-                    ? FontWeight.w600
-                    : FontWeight.normal,
+                fontWeight: valueColor != null ? FontWeight.w600 : FontWeight.normal,
               )),
         ),
       ]),
@@ -706,40 +630,33 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// =============================================================================
 // _SantierStatusBadge
-// =============================================================================
-
 class _SantierStatusBadge extends StatelessWidget {
   final SantierStatus status;
   const _SantierStatusBadge({required this.status});
 
-  Color _color() {
-    switch (status) {
-      case SantierStatus.activ:
-        return const Color(0xFF1A6B3C);
-      case SantierStatus.suspendat:
-        return ApprovalTheme.errorColorLight;
-      case SantierStatus.arhivat:
-        return ApprovalTheme.textSecondaryLight;
-    }
+  Color get _color => switch (status) {
+    SantierStatus.activ     => const Color(0xFF1A6B3C),
+    SantierStatus.suspendat => ApprovalTheme.errorColorLight,
+    SantierStatus.arhivat   => ApprovalTheme.textSecondaryLight,
+  };
+
+  String _label(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return switch (status) {
+      SantierStatus.activ     => l.translate('statusActiv'),
+      SantierStatus.suspendat => l.translate('statusSuspendat'),
+      SantierStatus.arhivat   => l.translate('statusArhivat'),
+    };
   }
 
   @override
-  Widget build(BuildContext context) {
-    final color = _color();
-    return Container(
-      decoration: ApprovalTheme.badgeDecoration(color),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Text(status.displayLabel,
-          style: ApprovalTheme.badgeTextStyle(color)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    decoration: ApprovalTheme.badgeDecoration(_color),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    child: Text(_label(context), style: ApprovalTheme.badgeTextStyle(_color)),
+  );
 }
-
-// =============================================================================
-// _SheetHandle
-// =============================================================================
 
 class _SheetHandle extends StatelessWidget {
   const _SheetHandle();
@@ -759,29 +676,4 @@ class _SheetHandle extends StatelessWidget {
       const SizedBox(height: 12),
     ],
   );
-}
-
-// ── Status → color helpers ────────────────────────────────────────────────────
-
-Color _santierStatusColor(SantierStatus status) {
-  switch (status) {
-    case SantierStatus.activ:
-      return const Color(0xFF1A6B3C);
-    case SantierStatus.suspendat:
-      return ApprovalTheme.errorColorLight;
-    case SantierStatus.arhivat:
-      return ApprovalTheme.textSecondaryLight;
-  }
-}
-
-Color _santierRowColor(BuildContext context, SantierStatus status) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
-  switch (status) {
-    case SantierStatus.activ:
-      return isDark ? const Color(0xFF1B3A24) : const Color(0xFFD4EDDA);
-    case SantierStatus.suspendat:
-      return isDark ? const Color(0xFF3D0000) : const Color(0xFFF8D7DA);
-    case SantierStatus.arhivat:
-      return isDark ? ApprovalTheme.cardBackground(context) : Colors.white;
-  }
 }

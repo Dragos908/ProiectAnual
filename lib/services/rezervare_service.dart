@@ -2,16 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/occupancy_period.dart';
 import '../models/user.dart';
 
-// =============================================================================
-// Enums & Model
-// =============================================================================
-
+// Enums
 enum RezervareType { comanda }
 
 enum RezervareStatus { pending, aprobat, respins }
 
 extension RezervareStatusX on RezervareStatus {
-  String get value => name; // "pending" | "aprobat" | "respins"
+  String get value => name;
+
   static RezervareStatus from(String? v) => switch (v) {
     'aprobat' => RezervareStatus.aprobat,
     'respins' => RezervareStatus.respins,
@@ -19,29 +17,21 @@ extension RezervareStatusX on RezervareStatus {
   };
 }
 
+// Rezervare
 class Rezervare {
   final String          id;
   final RezervareType   tip;
   final RezervareStatus status;
-
-  // Vehicul
   final String vehicleId;
   final String vehicleModel;
   final String vehicleClasa;
-
-  // Șantier
   final String? santierId;
   final String? santierNume;
   final String? santierColor;
   final String? comenzaId;
-
-  // Interval
   final DateTime dataStart;
   final DateTime dataFinal;
-
   final String? note;
-
-  // Audit
   final String  creatDeUserId;
   final String  creatDeNume;
   final String? aprobatDeUserId;
@@ -104,7 +94,6 @@ class Rezervare {
     );
   }
 
-  /// Conversie la OccupancyPeriod — pentru OccupancyCalendar.
   OccupancyPeriod toOccupancyPeriod() => OccupancyPeriod(
     from:         dataStart,
     to:           dataFinal,
@@ -121,57 +110,39 @@ class Rezervare {
   bool get isRespins  => status == RezervareStatus.respins;
 }
 
-// =============================================================================
 // RezervareService
-// =============================================================================
-
 class RezervareService {
-  static const Duration _timeout    = Duration(seconds: 15);
-  static const String   _col        = 'rezervari';
-  static const String   _colVeh     = 'vehicles';
-  static const String   _colSant    = 'santiere';
+  static const Duration _timeout = Duration(seconds: 15);
 
   static FirebaseFirestore get _db => FirebaseFirestore.instance;
+  static CollectionReference get _rezervari => _db.collection('rezervari');
+  static CollectionReference get _vehicles  => _db.collection('vehicles');
+  static CollectionReference get _santiere  => _db.collection('santiere');
 
-  static CollectionReference get _rezervari => _db.collection(_col);
-  static CollectionReference get _vehicles  => _db.collection(_colVeh);
-  static CollectionReference get _santiere  => _db.collection(_colSant);
+  // Streams
+  static Stream<List<Rezervare>> streamByVehicle(String vehicleId) =>
+      _rezervari
+          .where('vehicleId', isEqualTo: vehicleId)
+          .snapshots()
+          .map((s) => s.docs.map(Rezervare.fromDoc).toList());
 
-  // ── Streams ────────────────────────────────────────────────────────────────
+  static Stream<List<OccupancyPeriod>> vehicleOccupancyStream(String vehicleId) =>
+      streamByVehicle(vehicleId)
+          .map((list) => list.map((r) => r.toOccupancyPeriod()).toList());
 
-  /// Toate rezervările unui vehicul.
-  static Stream<List<Rezervare>> streamByVehicle(String vehicleId) {
-    return _rezervari
-        .where('vehicleId', isEqualTo: vehicleId)
-        .snapshots()
-        .map((s) => s.docs.map(Rezervare.fromDoc).toList());
-  }
+  static Stream<List<Rezervare>> streamBySantier(String santierId, User currentUser) =>
+      _rezervari
+          .where('santierId', isEqualTo: santierId)
+          .where('tip', isEqualTo: 'comanda')
+          .where('creatDeUserId', isEqualTo: currentUser.uid)
+          .snapshots()
+          .map((s) {
+        final list = s.docs.map(Rezervare.fromDoc).toList();
+        list.sort((a, b) => a.dataStart.compareTo(b.dataStart));
+        return list;
+      });
 
-  /// Rezervările unui vehicul convertite la OccupancyPeriod.
-  static Stream<List<OccupancyPeriod>> vehicleOccupancyStream(
-      String vehicleId) {
-    return streamByVehicle(vehicleId)
-        .map((list) => list.map((r) => r.toOccupancyPeriod()).toList());
-  }
-
-  /// Rezervările unui șantier — userul vede doar propriile comenzi.
-  static Stream<List<Rezervare>> streamBySantier(
-      String santierId, User currentUser) {
-    final q = _rezervari
-        .where('santierId', isEqualTo: santierId)
-        .where('tip', isEqualTo: 'comanda')
-        .where('creatDeUserId', isEqualTo: currentUser.uid);
-
-    return q.snapshots().map((s) {
-      final list = s.docs.map(Rezervare.fromDoc).toList();
-      list.sort((a, b) => a.dataStart.compareTo(b.dataStart));
-      return list;
-    });
-  }
-
-  // ── Creare ────────────────────────────────────────────────────────────────
-
-  /// Creează o rezervare de tip COMANDĂ — întotdeauna cu status pending.
+  // Creare
   static Future<String> createComanda({
     required String   santierId,
     required String   santierNume,
@@ -192,9 +163,9 @@ class RezervareService {
     await _assertNoOverlap(vehicleId, dataStart, dataFinal, excludeId: null);
 
     final effectiveColor = santierColor ?? await _getSantierColor(santierId);
+    final ref = _rezervari.doc();
 
-    final ref  = _rezervari.doc();
-    final data = <String, dynamic>{
+    await ref.set({
       'tip':                 'comanda',
       'status':              RezervareStatus.pending.value,
       'vehicleId':           vehicleId,
@@ -212,14 +183,12 @@ class RezervareService {
       'creatDeNume':    currentUser.name,
       'createdAt':      FieldValue.serverTimestamp(),
       'updatedAt':      FieldValue.serverTimestamp(),
-    };
+    }).timeout(_timeout);
 
-    await ref.set(data).timeout(_timeout);
     return ref.id;
   }
 
-  // ── Actualizare interval ──────────────────────────────────────────────────
-
+  // Actualizare
   static Future<void> updateInterval({
     required String   rezervareId,
     required String   vehicleId,
@@ -227,9 +196,7 @@ class RezervareService {
     required DateTime newDataFinal,
     required String   modificatDeUserId,
   }) async {
-    await _assertNoOverlap(vehicleId, newDataStart, newDataFinal,
-        excludeId: rezervareId);
-
+    await _assertNoOverlap(vehicleId, newDataStart, newDataFinal, excludeId: rezervareId);
     await _rezervari.doc(rezervareId).update({
       'dataStart':         Timestamp.fromDate(newDataStart),
       'dataFinal':         Timestamp.fromDate(newDataFinal),
@@ -238,17 +205,14 @@ class RezervareService {
     }).timeout(_timeout);
   }
 
-  // ── Ștergere ─────────────────────────────────────────────────────────────
+  // Ștergere
+  static Future<void> delete(String rezervareId) =>
+      _rezervari.doc(rezervareId).delete().timeout(_timeout);
 
-  static Future<void> delete(String rezervareId) async {
-    await _rezervari.doc(rezervareId).delete().timeout(_timeout);
-  }
-
-  // ── Verificare disponibilitate ───────────────────────────────────────────
-
+  // Verificare disponibilitate
   static Future<Rezervare?> checkOverlap(
-      String vehicleId, DateTime start, DateTime end,
-      {String? excludeId}) async {
+      String vehicleId, DateTime start, DateTime end, {String? excludeId}
+      ) async {
     final snap = await _rezervari
         .where('vehicleId', isEqualTo: vehicleId)
         .where('status', whereIn: ['pending', 'aprobat'])
@@ -258,20 +222,16 @@ class RezervareService {
     for (final doc in snap.docs) {
       if (excludeId != null && doc.id == excludeId) continue;
       final r = Rezervare.fromDoc(doc);
-      if (!r.dataStart.isAfter(end) && !r.dataFinal.isBefore(start)) {
-        return r;
-      }
+      if (!r.dataStart.isAfter(end) && !r.dataFinal.isBefore(start)) return r;
     }
     return null;
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
+  // Helpers
   static Future<void> _assertNoOverlap(
-      String vehicleId, DateTime start, DateTime end,
-      {required String? excludeId}) async {
-    final conflict = await checkOverlap(vehicleId, start, end,
-        excludeId: excludeId);
+      String vehicleId, DateTime start, DateTime end, {required String? excludeId}
+      ) async {
+    final conflict = await checkOverlap(vehicleId, start, end, excludeId: excludeId);
     if (conflict != null) throw RezervareOverlapException(conflict);
   }
 
@@ -286,10 +246,7 @@ class RezervareService {
   }
 }
 
-// =============================================================================
 // RezervareOverlapException
-// =============================================================================
-
 class RezervareOverlapException implements Exception {
   final Rezervare conflicting;
   const RezervareOverlapException(this.conflicting);

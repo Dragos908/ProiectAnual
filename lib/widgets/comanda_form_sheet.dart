@@ -7,13 +7,11 @@ import '/models/occupancy_period.dart';
 import 'occupancy_calendar.dart';
 import '/approval_theme.dart';
 import '../models/user.dart';
+import '/app_localizations.dart';
 
 final _dateFmt = DateFormat('dd.MM.yyyy HH:mm');
 
-// =============================================================================
 // ComandaFormSheet
-// =============================================================================
-
 class ComandaFormSheet extends StatefulWidget {
   final String   santierId;
   final String   santierNume;
@@ -21,7 +19,7 @@ class ComandaFormSheet extends StatefulWidget {
   final User     currentUser;
   final Comanda? existingComanda;
 
-  /// Culoarea santierului (hex) — denormalizata in OccupancyPeriod.
+
   final String? santierColor;
 
   const ComandaFormSheet({
@@ -56,7 +54,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
   String? _error;
   bool    _saving = false;
 
-  // ── Init / dispose ─────────────────────────────────────────────────────────
+
 
   @override
   void initState() {
@@ -88,7 +86,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
     super.dispose();
   }
 
-  // ── Cautare ────────────────────────────────────────────────────────────────
+
 
   void _onSearchChanged() {
     _debounce?.cancel();
@@ -118,7 +116,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
     });
   }
 
-  // ── Picker data/ora nativ ──────────────────────────────────────────────────
+
 
   Future<DateTime?> _pickDT(BuildContext ctx, {
     DateTime? initial, DateTime? firstDate,
@@ -143,18 +141,18 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
-  // ── Salvare ────────────────────────────────────────────────────────────────
+
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_vehicle == null) {
-      _setErr('Selectați un mecanism din lista de sugestii.'); return;
+      _setErr(AppLocalizations.of(context).selectMecanism); return;
     }
     if (_start == null || _final == null) {
-      _setErr('Selectați data+ora de start și final.'); return;
+      _setErr(AppLocalizations.of(context).selectDateTimeStartEnd); return;
     }
     if (!_final!.isAfter(_start!)) {
-      _setErr('Data final trebuie să fie după data start.'); return;
+      _setErr(AppLocalizations.of(context).finalAfterStart); return;
     }
 
     setState(() { _saving = true; _error = null; });
@@ -162,7 +160,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
       final note = _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim();
 
       if (widget.existingComanda == null) {
-        // ── Comandă nouă ──────────────────────────────────────────────────────
+        // Comandă nouă
         await ComenzaService.createComanda(
           santierId:           widget.santierId,
           santierNume:         widget.santierNume,
@@ -177,7 +175,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
           santierColor:        widget.santierColor,
         );
       } else {
-        // ── Editare comandă existentă ─────────────────────────────────────────
+        // Editare comandă existentă
         final c         = widget.existingComanda!;
         final oldPeriod = OccupancyPeriod(
           from:         c.dataStart,
@@ -201,10 +199,10 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
 
-      // Mesaj fix pentru utilizatorul simplu
+      final l          = AppLocalizations.of(context);
       final successMsg = widget.existingComanda != null
-          ? 'Comanda a fost actualizată.'
-          : 'Comanda a fost trimisă spre aprobare.';
+          ? l.comandaActualizata
+          : l.comandaTrimisaAprobare;
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(successMsg),
@@ -212,11 +210,12 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
       ));
 
     } on RezervareOverlapException catch (e) {
+      final l = AppLocalizations.of(context);
       _setErr(
-        'Interval suprapus cu rezervarea existentă:\n'
+        '${l.intervalSuprapusCu}\n'
             '${_dateFmt.format(e.conflicting.dataStart)} – '
             '${_dateFmt.format(e.conflicting.dataFinal)}'
-            '${e.conflicting.creatDeNume.isNotEmpty ? '\nRezervat de: ${e.conflicting.creatDeNume}' : ''}',
+            '${e.conflicting.creatDeNume.isNotEmpty ? '\n${l.rezervatDe}: ${e.conflicting.creatDeNume}' : ''}',
       );
     }  finally {
       if (mounted) setState(() => _saving = false);
@@ -225,25 +224,28 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
 
   void _setErr(String msg) => setState(() => _error = msg);
 
-  // ── Stergere ───────────────────────────────────────────────────────────────
+
 
   Future<void> _delete() async {
     final c = widget.existingComanda!;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title:   const Text('Șterge comanda?'),
-        content: const Text('Comanda va fi ștearsă și intervalul eliberat.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
-              child: const Text('Anulează')),
-          TextButton(
-              style: TextButton.styleFrom(
-                  foregroundColor: ApprovalTheme.errorColor(context)),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Șterge')),
-        ],
-      ),
+      builder: (ctx) {
+        final l = AppLocalizations.of(ctx);
+        return AlertDialog(
+          title:   Text(l.translate('deleteComandaTitle')),
+          content: Text(l.translate('deleteComandaContent')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.translate('cancel'))),
+            TextButton(
+                style: TextButton.styleFrom(
+                    foregroundColor: ApprovalTheme.errorColor(ctx)),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.translate('delete'))),
+          ],
+        );
+      },
     );
     if (ok != true || !mounted) return;
 
@@ -262,13 +264,13 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
-      _setErr('Eroare la ștergere: $e');
+      _setErr('${AppLocalizations.of(context).deleteError}: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
+
 
   @override
   Widget build(BuildContext context) {
@@ -288,19 +290,21 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
         padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom),
         child: Column(children: [
-          _Handle(),
+          _SheetHandle(),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
-              Text(isEdit ? 'Editare comandă' : 'Comandă nouă',
+              Text(isEdit
+                  ? AppLocalizations.of(context).translate('editComanda')
+                  : AppLocalizations.of(context).translate('newComanda'),
                   style: ApprovalTheme.textTitle(context)),
               const Spacer(),
               if (isEdit)
                 OutlinedButton.icon(
                   onPressed: _saving ? null : _delete,
                   icon:  const Icon(Icons.delete_outline, size: 16),
-                  label: const Text('Șterge'),
+                  label: Text(AppLocalizations.of(context).translate('delete')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: ApprovalTheme.errorColor(context),
                     side: BorderSide(
@@ -321,13 +325,13 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // ── Cautare mecanism ──────────────────────────────────────
+                  // Cautare mecanism
                   TextFormField(
                     controller: _searchCtrl,
                     style: ApprovalTheme.textBody(context),
                     decoration: ApprovalTheme.inputDecoration(
                       context,
-                      'Mecanism (tastați minim 2 caractere)',
+                      AppLocalizations.of(context).mechanismHint,
                     ).copyWith(
                       prefixIcon: Icon(Icons.search,
                           color: ApprovalTheme.textSecondary(context),
@@ -343,10 +347,10 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                           : null,
                     ),
                     validator: (_) => _vehicle == null
-                        ? 'Selectați un mecanism din listă.' : null,
+                        ? AppLocalizations.of(context).selectMechanismFromList : null,
                   ),
 
-                  // ── Dropdown rezultate ────────────────────────────────────
+                  // Dropdown rezultate
                   if (_results.isNotEmpty)
                     _SearchDropdown(
                       results:   _results,
@@ -363,7 +367,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                             color: ApprovalTheme.errorColor(context)),
                         const SizedBox(width: 6),
                         Text(
-                          'Mecanismul nu a fost găsit în baza de date.',
+                          AppLocalizations.of(context).mechanismNotFound,
                           style: TextStyle(
                               color: ApprovalTheme.errorColor(context),
                               fontSize: 13),
@@ -373,7 +377,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
 
                   const SizedBox(height: 16),
 
-                  // ── Calendar ocupare ──────────────────────────────────────
+                  // Calendar ocupare
                   if (_vehicle != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -394,7 +398,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                                 color: ApprovalTheme.primaryAccent(context)),
                             const SizedBox(width: 6),
                             Expanded(child: Text(
-                                'Calendar — ${_vehicle!.model}',
+                                '${AppLocalizations.of(context).calendarLabel} — ${_vehicle!.model}',
                                 style: ApprovalTheme.textSmall(context)
                                     .copyWith(fontWeight: FontWeight.bold))),
                           ]),
@@ -433,9 +437,9 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                     const SizedBox(height: 16),
                   ],
 
-                  // ── Campuri data start / final ────────────────────────────
+                  // Campuri data start / final
                   _DTField(
-                    label: 'Data + Ora start', value: _start,
+                    label: AppLocalizations.of(context).translate('dateTimeStart'), value: _start,
                     onTap: () async {
                       final dt = await _pickDT(context, initial: _start);
                       if (dt != null) setState(() { _start = dt; _error = null; });
@@ -443,7 +447,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                   ),
                   const SizedBox(height: 10),
                   _DTField(
-                    label: 'Data + Ora final', value: _final,
+                    label: AppLocalizations.of(context).translate('dateTimeEnd'), value: _final,
                     onTap: () async {
                       final dt = await _pickDT(context,
                           initial: _final, firstDate: _start);
@@ -452,22 +456,22 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                   ),
                   const SizedBox(height: 10),
 
-                  // ── Note ──────────────────────────────────────────────────
+                  // Note
                   TextFormField(
                     controller: _noteCtrl, maxLines: 2,
                     style: ApprovalTheme.textBody(context),
                     decoration: ApprovalTheme.inputDecoration(
-                      context, 'Note (opțional)',
+                      context, AppLocalizations.of(context).noteOptional,
                     ).copyWith(prefixIcon: Icon(Icons.notes_outlined,
                         color: ApprovalTheme.textSecondary(context),
                         size: 20)),
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Eroare suprapunere ────────────────────────────────────
+                  // Eroare suprapunere
                   if (_error != null) _ErrorBox(message: _error!),
 
-                  // ── Submit ────────────────────────────────────────────────
+                  // Submit
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -479,8 +483,8 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
                           : Text(isEdit
-                          ? 'Actualizează'
-                          : 'Trimite spre aprobare'),
+                          ? AppLocalizations.of(context).actualizeaza
+                          : AppLocalizations.of(context).trimiteSpreAprobare),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -494,10 +498,7 @@ class _ComandaFormSheetState extends State<ComandaFormSheet> {
   }
 }
 
-// =============================================================================
 // Widgets ajutatoare
-// =============================================================================
-
 class _SearchDropdown extends StatelessWidget {
   final List<VehicleSearchResult>          results;
   final DateTime?                          dataStart;
@@ -535,11 +536,11 @@ class _SearchDropdown extends StatelessWidget {
               style: ApprovalTheme.textBody(context)),
           subtitle: occ && conflict != null
               ? Text(
-              'Ocupat ${_dateFmt.format(conflict.from)} – '
+              '${AppLocalizations.of(context).translate('occupied')} ${_dateFmt.format(conflict.from)} – '
                   '${_dateFmt.format(conflict.to)}',
               style: TextStyle(
                   color: ApprovalTheme.errorColor(context), fontSize: 11))
-              : Text('Disponibil',
+              : Text(AppLocalizations.of(context).translate('available'),
               style: TextStyle(
                   color: Colors.green.shade600, fontSize: 11)),
         ),
@@ -597,7 +598,7 @@ class _DTField extends StatelessWidget {
             color: ApprovalTheme.textSecondary(context)),
       ),
       child: Text(
-        value != null ? _dateFmt.format(value!) : 'Selectați data și ora',
+        value != null ? _dateFmt.format(value!) : AppLocalizations.of(context).selectDateAndTime,
         style: value != null
             ? ApprovalTheme.textBody(context)
             : ApprovalTheme.textBody(context)
@@ -607,7 +608,7 @@ class _DTField extends StatelessWidget {
   );
 }
 
-class _Handle extends StatelessWidget {
+class _SheetHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,

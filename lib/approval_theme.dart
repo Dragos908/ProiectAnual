@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ApprovalTheme {
   ApprovalTheme._();
 
-  // CULORI - LIGHT MODE
+  //LIGHT MODE
   static const Color primaryAccentLight = Color(0xFF2196F3);
   static const Color successColorLight = Color(0xFF4CAF50);
   static const Color errorColorLight = Color(0xFFE53935);
@@ -17,7 +17,7 @@ class ApprovalTheme {
   static const Color cardBackgroundLight = Colors.white;
   static const Color surfaceBackgroundLight = Color(0xFFFAFAFA);
 
-  // CULORI - DARK MODE
+  //DARK MODE
   static const Color primaryAccentDark = Color(0xFF64B5F6);
   static const Color successColorDark = Color(0xFF66BB6A);
   static const Color errorColorDark = Color(0xFFEF5350);
@@ -34,34 +34,24 @@ class ApprovalTheme {
   // GETTERI PENTRU CULORI DINAMICE
   static Color primaryAccent(BuildContext context) =>
       _isDark(context) ? primaryAccentDark : primaryAccentLight;
-
   static Color successColor(BuildContext context) =>
       _isDark(context) ? successColorDark : successColorLight;
-
   static Color errorColor(BuildContext context) =>
       _isDark(context) ? errorColorDark : errorColorLight;
-
   static Color warningColor(BuildContext context) =>
       _isDark(context) ? warningColorDark : warningColorLight;
-
   static Color textPrimary(BuildContext context) =>
       _isDark(context) ? textPrimaryDark : textPrimaryLight;
-
   static Color textSecondary(BuildContext context) =>
       _isDark(context) ? textSecondaryDark : textSecondaryLight;
-
   static Color borderColor(BuildContext context) =>
       _isDark(context) ? borderColorDark : borderColorLight;
-
   static Color dividerColor(BuildContext context) =>
       _isDark(context) ? dividerColorDark : dividerColorLight;
-
   static Color cardBackground(BuildContext context) =>
       _isDark(context) ? cardBackgroundDark : cardBackgroundLight;
-
   static Color surfaceBackground(BuildContext context) =>
       _isDark(context) ? surfaceBackgroundDark : surfaceBackgroundLight;
-
   static bool _isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
 

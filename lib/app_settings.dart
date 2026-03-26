@@ -4,32 +4,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 import './app_localizations.dart';
 
 class AppSettings with ChangeNotifier {
-  // ==================== CONFIGURARE ====================
-
   static const ThemeMode _defaultThemeMode = ThemeMode.light;
-  static const Locale _defaultLocale = Locale('ro', 'RO');
+  static const Locale    _defaultLocale    = Locale('ro', 'RO');
 
   static const List<Locale> supportedLocales = [
     Locale('ro', 'RO'),
     Locale('ru', 'RU'),
   ];
 
-  static const String _keyThemeMode = 'theme_mode';
-  static const String _keyLocale = 'locale';
-  static const String _themeDark = 'dark';
+  static const String _keyThemeMode    = 'theme_mode';
+  static const String _keyLocale       = 'locale';
   static const String _localeDelimiter = '_';
 
-  // ==================== STARE ====================
-
   ThemeMode _themeMode = _defaultThemeMode;
-  Locale _locale = _defaultLocale;
+  Locale    _locale    = _defaultLocale;
   SharedPreferences? _prefs;
 
   ThemeMode get themeMode => _themeMode;
-  Locale get locale => _locale;
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
-
-  // ==================== INIȚIALIZARE ====================
+  Locale    get locale    => _locale;
+  bool      get isDarkMode => _themeMode == ThemeMode.dark;
 
   AppSettings() {
     _init();
@@ -37,45 +30,57 @@ class AppSettings with ChangeNotifier {
 
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
-    await _loadSettings();
+    _loadSettings();
   }
 
   Future<void> ensureInitialized() async {
     _prefs ??= await SharedPreferences.getInstance();
   }
 
-  // ==================== ÎNCĂRCARE SETĂRI ====================
-
-  Future<void> _loadSettings() async {
+  void _loadSettings() {
     final prefs = _prefs;
     if (prefs == null) return;
 
-    final savedTheme = prefs.getString(_keyThemeMode);
+    final savedTheme  = prefs.getString(_keyThemeMode);
     final savedLocale = prefs.getString(_keyLocale);
 
-    _themeMode = savedTheme == _themeDark ? ThemeMode.dark : _defaultThemeMode;
-    _locale = _parseLocale(savedLocale);
+    _themeMode = savedTheme == 'dark' ? ThemeMode.dark : _defaultThemeMode;
+    _locale    = _parseLocale(savedLocale);
     notifyListeners();
   }
 
-  Locale _parseLocale(String? savedLocale) {
-    if (savedLocale == null || !savedLocale.contains(_localeDelimiter)) {
-      return _defaultLocale;
-    }
-
-    final parts = savedLocale.split(_localeDelimiter);
+  Locale _parseLocale(String? saved) {
+    if (saved == null || !saved.contains(_localeDelimiter)) return _defaultLocale;
+    final parts = saved.split(_localeDelimiter);
     if (parts.length != 2) return _defaultLocale;
-
     final locale = Locale(parts[0], parts[1]);
     return supportedLocales.contains(locale) ? locale : _defaultLocale;
   }
 
-  // ==================== SALVARE SETĂRI (OPTIMIZAT) ====================
+  void setThemeMode(ThemeMode mode) {
+    if (_themeMode == mode) return;
+    _themeMode = mode;
+    notifyListeners();
+    _save(_keyThemeMode, mode == ThemeMode.dark ? 'dark' : null, mode == _defaultThemeMode);
+  }
 
-  Future<void> _saveSetting(String key, String? value, bool isDefault) async {
+  void setLocale(Locale locale) {
+    if (_locale == locale) return;
+    _locale = locale;
+    notifyListeners();
+    _save(
+      _keyLocale,
+      '${locale.languageCode}$_localeDelimiter${locale.countryCode}',
+      locale == _defaultLocale,
+    );
+  }
+
+  void toggleTheme() =>
+      setThemeMode(_themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
+
+  Future<void> _save(String key, String? value, bool isDefault) async {
     final prefs = _prefs;
     if (prefs == null) return;
-
     if (isDefault) {
       await prefs.remove(key);
     } else if (value != null) {
@@ -83,73 +88,36 @@ class AppSettings with ChangeNotifier {
     }
   }
 
-  // ==================== SETĂRI PUBLICE ====================
-
-  void setThemeMode(ThemeMode themeMode) {
-    if (_themeMode == themeMode) return;
-    _themeMode = themeMode;
-    notifyListeners();
-    _saveSetting(
-      _keyThemeMode,
-      themeMode == ThemeMode.dark ? _themeDark : null,
-      themeMode == _defaultThemeMode,
-    );
-  }
-
-  void setLocale(Locale locale) {
-    if (_locale == locale) return;
-    _locale = locale;
-    notifyListeners();
-    _saveSetting(
-      _keyLocale,
-      '${locale.languageCode}$_localeDelimiter${locale.countryCode}',
-      locale == _defaultLocale,
-    );
-  }
-
-  void toggleTheme() {
-    setThemeMode(_themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
-  }
-
-  // ==================== DIALOG ====================
-
   static void showSettingsDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => const _SettingsDialogContent(),
+      builder: (_) => const _SettingsDialog(),
     );
   }
 }
 
-// ==================== CONSTANTE UI ====================
-
-class _UIConstants {
-  static const borderRadius = BorderRadius.all(Radius.circular(16));
+//UI Constants
+class _UI {
+  static const radius       = BorderRadius.all(Radius.circular(16));
   static const dialogRadius = BorderRadius.all(Radius.circular(24));
-  static const iconSize = 28.0;
-  static const horizontalPadding = 20.0;
-  static const verticalPadding = 20.0;
-  static const spacing = 8.0;
-  static const sectionSpacing = 12.0;
-  static const dividerHeight = 40.0;
-  static const headerBottomSpace = 32.0;
-  static const bottomSpace = 24.0;
+  static const iconSize     = 28.0;
+  static const hPad         = 20.0;
+  static const vPad         = 20.0;
+  static const spacing      = 8.0;
+  static const sectionGap   = 12.0;
 }
 
-// ==================== UI DIALOG ====================
-
-class _SettingsDialogContent extends StatelessWidget {
-  const _SettingsDialogContent();
+//Dialog
+class _SettingsDialog extends StatelessWidget {
+  const _SettingsDialog();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l = AppLocalizations.of(context);
-
     return Dialog(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(borderRadius: _UIConstants.dialogRadius),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(borderRadius: _UI.dialogRadius),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
@@ -159,11 +127,11 @@ class _SettingsDialogContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _DialogHeader(l: l),
-              const SizedBox(height: _UIConstants.headerBottomSpace),
+              const SizedBox(height: 32),
               _ThemeSection(l: l),
-              const Divider(height: _UIConstants.dividerHeight, color: Colors.black12),
+              const Divider(height: 40, color: Colors.black12),
               _LanguageSection(l: l),
-              const SizedBox(height: _UIConstants.bottomSpace),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -172,17 +140,13 @@ class _SettingsDialogContent extends StatelessWidget {
   }
 }
 
-// ==================== HEADER ====================
-
 class _DialogHeader extends StatelessWidget {
-  const _DialogHeader({required this.l});
-
   final AppLocalizations l;
+  const _DialogHeader({required this.l});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -197,11 +161,7 @@ class _DialogHeader extends StatelessWidget {
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(
-            Icons.close,
-            color: theme.colorScheme.onSurfaceVariant,
-            size: 24,
-          ),
+          icon: Icon(Icons.close, color: theme.colorScheme.onSurfaceVariant, size: 24),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
         ),
@@ -210,75 +170,56 @@ class _DialogHeader extends StatelessWidget {
   }
 }
 
-// ==================== SECȚIUNE TEMĂ ====================
-
 class _ThemeSection extends StatelessWidget {
+  final AppLocalizations l;
   const _ThemeSection({required this.l});
 
-  final AppLocalizations l;
-
   @override
-  Widget build(BuildContext context) {
-    return _SettingsSection<ThemeMode>(
-      title: l.theme,
-      options: [
-        _OptionData(Icons.wb_sunny_outlined, l.lightMode, ThemeMode.light),
-        _OptionData(Icons.nightlight_outlined, l.darkMode, ThemeMode.dark),
-      ],
-      selector: (settings) => settings.themeMode,
-      onChanged: (settings, value) => settings.setThemeMode(value),
-    );
-  }
+  Widget build(BuildContext context) => _SettingsSection<ThemeMode>(
+    title: l.theme,
+    options: [
+      _Option(Icons.wb_sunny_outlined,    l.lightMode, ThemeMode.light),
+      _Option(Icons.nightlight_outlined,  l.darkMode,  ThemeMode.dark),
+    ],
+    selector:  (s) => s.themeMode,
+    onChanged: (s, v) => s.setThemeMode(v),
+  );
 }
-
-// ==================== SECȚIUNE LIMBĂ ====================
 
 class _LanguageSection extends StatelessWidget {
+  final AppLocalizations l;
   const _LanguageSection({required this.l});
 
-  final AppLocalizations l;
-
   @override
-  Widget build(BuildContext context) {
-    return _SettingsSection<Locale>(
-      title: l.language,
-      options: AppSettings.supportedLocales
-          .map((locale) => _OptionData(
-        Icons.language_outlined,
-        _getLanguageName(locale, l),
-        locale,
-      ))
-          .toList(),
-      selector: (settings) => settings.locale,
-      onChanged: (settings, value) => settings.setLocale(value),
-    );
-  }
+  Widget build(BuildContext context) => _SettingsSection<Locale>(
+    title: l.language,
+    options: AppSettings.supportedLocales
+        .map((locale) => _Option(Icons.language_outlined, _langName(locale, l), locale))
+        .toList(),
+    selector:  (s) => s.locale,
+    onChanged: (s, v) => s.setLocale(v),
+  );
 
-  static String _getLanguageName(Locale locale, AppLocalizations l) {
-    switch (locale.languageCode) {
-      case 'ro':
-        return l.translate('romanian');
-      case 'ru':
-        return l.translate('russian');
-      default:
-        return locale.languageCode.toUpperCase();
-    }
-  }
+  static String _langName(Locale locale, AppLocalizations l) => switch (locale.languageCode) {
+    'ro' => l.translate('romanian'),
+    'ru' => l.translate('russian'),
+    _    => locale.languageCode.toUpperCase(),
+  };
 }
 
-// ==================== DATE OPȚIUNE ====================
-
-class _OptionData<T> {
-  const _OptionData(this.icon, this.title, this.value);
-
+class _Option<T> {
+  const _Option(this.icon, this.title, this.value);
   final IconData icon;
   final String title;
   final T value;
 }
 
-// ==================== SECȚIUNE GENERICĂ (ELIMINĂ DUPLICARE) ====================
-
 class _SettingsSection<T> extends StatelessWidget {
+  final String title;
+  final List<_Option<T>> options;
+  final T Function(AppSettings) selector;
+  final void Function(AppSettings, T) onChanged;
+
   const _SettingsSection({
     required this.title,
     required this.options,
@@ -286,33 +227,35 @@ class _SettingsSection<T> extends StatelessWidget {
     required this.onChanged,
   });
 
-  final String title;
-  final List<_OptionData<T>> options;
-  final T Function(AppSettings) selector;
-  final void Function(AppSettings, T) onChanged;
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(title: title),
-        const SizedBox(height: _UIConstants.sectionSpacing),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: _UI.sectionGap),
         Consumer<AppSettings>(
           builder: (context, settings, _) {
-            final currentValue = selector(settings);
+            final current = selector(settings);
             return Column(
               children: [
-                for (var i = 0; i < options.length; i++) ...[
+                for (int i = 0; i < options.length; i++) ...[
                   _OptionCard<T>(
-                    icon: options[i].icon,
-                    title: options[i].title,
-                    value: options[i].value,
-                    groupValue: currentValue,
-                    onChanged: (value) => onChanged(settings, value),
+                    icon:       options[i].icon,
+                    title:      options[i].title,
+                    value:      options[i].value,
+                    groupValue: current,
+                    onChanged:  (v) => onChanged(settings, v),
                   ),
-                  if (i < options.length - 1)
-                    const SizedBox(height: _UIConstants.spacing),
+                  if (i < options.length - 1) const SizedBox(height: _UI.spacing),
                 ],
               ],
             );
@@ -323,30 +266,13 @@ class _SettingsSection<T> extends StatelessWidget {
   }
 }
 
-// ==================== SECTION HEADER ====================
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title.toUpperCase(),
-      style: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-        letterSpacing: 1.5,
-      ),
-    );
-  }
-}
-
-// ==================== OPTION CARD ====================
-
 class _OptionCard<T> extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final T value;
+  final T groupValue;
+  final ValueChanged<T> onChanged;
+
   const _OptionCard({
     required this.icon,
     required this.title,
@@ -355,46 +281,34 @@ class _OptionCard<T> extends StatelessWidget {
     required this.onChanged,
   });
 
-  final IconData icon;
-  final String title;
-  final T value;
-  final T groupValue;
-  final ValueChanged<T> onChanged;
-
   @override
   Widget build(BuildContext context) {
-    final isSelected = value == groupValue;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Culori calculate o singură dată
-    final activeTextColor = isDark ? const Color(0xFF0D47A1) : Colors.white;
-    final bgColor = isSelected ? colorScheme.primary : Colors.transparent;
-    final borderColor = isSelected
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant.withOpacity(0.3);
-    final textColor = isSelected ? activeTextColor : colorScheme.onSurface;
-    final iconColor = isSelected ? activeTextColor : colorScheme.onSurfaceVariant;
+    final isSelected   = value == groupValue;
+    final theme        = Theme.of(context);
+    final isDark       = theme.brightness == Brightness.dark;
+    final activeText   = isDark ? const Color(0xFF0D47A1) : Colors.white;
+    final bgColor      = isSelected ? theme.colorScheme.primary : Colors.transparent;
+    final borderColor  = isSelected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant.withOpacity(0.3);
+    final textColor    = isSelected ? activeText : theme.colorScheme.onSurface;
+    final iconColor    = isSelected ? activeText : theme.colorScheme.onSurfaceVariant;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => onChanged(value),
-        borderRadius: _UIConstants.borderRadius,
+        borderRadius: _UI.radius,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _UIConstants.horizontalPadding,
-            vertical: _UIConstants.verticalPadding,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: _UI.hPad, vertical: _UI.vPad),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: _UIConstants.borderRadius,
+            borderRadius: _UI.radius,
             border: Border.all(color: borderColor, width: 2),
           ),
           child: Row(
             children: [
-              Icon(icon, size: _UIConstants.iconSize, color: iconColor),
+              Icon(icon, size: _UI.iconSize, color: iconColor),
               const SizedBox(width: 20),
               Expanded(
                 child: Text(
@@ -406,8 +320,7 @@ class _OptionCard<T> extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isSelected)
-                Icon(Icons.check_circle, size: _UIConstants.iconSize, color: activeTextColor),
+              if (isSelected) Icon(Icons.check_circle, size: _UI.iconSize, color: activeText),
             ],
           ),
         ),

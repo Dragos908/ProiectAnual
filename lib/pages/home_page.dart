@@ -17,8 +17,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final Set<int> _visitedTabs = {0};
 
@@ -39,32 +38,31 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: _buildBody(),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar() {
     final l = AppLocalizations.of(context);
-
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l.translate('appTitle'),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-          // Afișează numele utilizatorului dacă există, altfel nimic
+          Text(l.translate('appTitle'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           if (widget.currentUser.name.isNotEmpty)
-            Text(
-              widget.currentUser.name,
-              style: const TextStyle(fontSize: 12),
-            ),
+            Text(widget.currentUser.name, style: const TextStyle(fontSize: 12)),
         ],
       ),
-      actions: [
-        _buildAppBarActions(context, l),
-      ],
+      actions: [_buildAppBarActions(l)],
       bottom: TabBar(
         controller: _tabController,
         tabs: [
-          const Tab(icon: Icon(Icons.construction), text: 'Șantiere'),
+          Tab(icon: const Icon(Icons.construction), text: l.translate('santiere')),  // era: 'Șantiere'
           Tab(icon: const Icon(Icons.agriculture), text: l.translate('tehnica')),
           const Tab(icon: Icon(Icons.picture_as_pdf), text: 'PDF'),
         ],
@@ -72,26 +70,16 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  /// Construiește acțiunile AppBar, adaptate la lățimea ecranului.
-  /// Pe ecrane înguste (< 360 dp) grupează butoanele într-un PopupMenuButton
-  /// pentru a evita aglomerarea; pe ecrane mai late le afișează individual.
-  Widget _buildAppBarActions(BuildContext context, dynamic l) {
-    final width = MediaQuery.of(context).size.width;
+  Widget _buildAppBarActions(AppLocalizations l) {
+    final isNarrow = MediaQuery.of(context).size.width < 360;
 
-    if (width < 360) {
-      // Ecran mic → un singur buton „more" cu meniu derulant
+    if (isNarrow) {
       return PopupMenuButton<_AppBarAction>(
         icon: const Icon(Icons.more_vert),
-        tooltip: 'Opțiuni',
-        onSelected: (action) {
-          switch (action) {
-            case _AppBarAction.settings:
-              AppSettings.showSettingsDialog(context);
-              break;
-            case _AppBarAction.changeName:
-              _showChangeNameDialog(context);
-              break;
-          }
+        tooltip: l.translate('options'),                          // era: 'Opțiuni'
+        onSelected: (action) => switch (action) {
+          _AppBarAction.settings   => AppSettings.showSettingsDialog(context),
+          _AppBarAction.changeName => _showChangeNameDialog(),
         },
         itemBuilder: (_) => [
           PopupMenuItem(
@@ -102,19 +90,18 @@ class _HomePageState extends State<HomePage>
               Text(l.translate('settings')),
             ]),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: _AppBarAction.changeName,
             child: Row(children: [
-              Icon(Icons.person, size: 20),
-              SizedBox(width: 10),
-              Text('Schimbă numele'),
+              const Icon(Icons.person, size: 20),
+              const SizedBox(width: 10),
+              Text(l.translate('changeName')),                    // era: 'Schimbă numele'
             ]),
           ),
         ],
       );
     }
 
-    // Ecran normal → iconițe individuale
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -124,34 +111,33 @@ class _HomePageState extends State<HomePage>
           tooltip: l.translate('settings'),
         ),
         IconButton(
-          onPressed: () => _showChangeNameDialog(context),
+          onPressed: _showChangeNameDialog,
           icon: const Icon(Icons.person),
-          tooltip: 'Schimbă numele',
+          tooltip: l.translate('changeName'),                     // era: 'Schimbă numele'
         ),
       ],
     );
   }
 
-  /// Dialog simplu pentru a seta/modifica numele utilizatorului.
-  Future<void> _showChangeNameDialog(BuildContext context) async {
-    final controller =
-    TextEditingController(text: widget.currentUser.name);
+  Future<void> _showChangeNameDialog() async {
+    final l = AppLocalizations.of(context);
+    final controller = TextEditingController(text: widget.currentUser.name);
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Nume utilizator'),
+        title: Text(l.translate('userName')),                     // era: 'Nume utilizator'
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Introduceți numele...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l.translate('enterName'),                   // era: 'Introduceți numele...'
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Anulează'),
+            child: Text(l.translate('cancel')),                   // era: 'Anulează'
           ),
           FilledButton(
             onPressed: () async {
@@ -159,36 +145,28 @@ class _HomePageState extends State<HomePage>
               setState(() {});
               Navigator.pop(ctx);
             },
-            child: const Text('Salvează'),
+            child: Text(l.translate('save')),                     // era: 'Salvează'
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: _buildLazyBody(),
-    );
-  }
-
-  Widget _buildLazyBody() {
-    final allTabs = [
+  Widget _buildBody() {
+    final tabs = [
       SantiereListPage(currentUser: widget.currentUser),
       TehnicaPage(currentUser: widget.currentUser),
       _PdfDataWrapper(currentUser: widget.currentUser),
     ];
 
     return Stack(
-      children: List.generate(allTabs.length, (i) {
+      children: List.generate(tabs.length, (i) {
         if (!_visitedTabs.contains(i)) return const SizedBox.shrink();
         return Offstage(
           offstage: _tabController.index != i,
           child: TickerMode(
             enabled: _tabController.index == i,
-            child: allTabs[i],
+            child: tabs[i],
           ),
         );
       }),
@@ -196,22 +174,17 @@ class _HomePageState extends State<HomePage>
   }
 }
 
-// =============================================================================
-// _AppBarAction — enum pentru meniul de acțiuni
-// =============================================================================
-
 enum _AppBarAction { settings, changeName }
 
+// PDF Data Wrapper
 class _PdfDataWrapper extends StatelessWidget {
   final User currentUser;
-
   const _PdfDataWrapper({required this.currentUser});
 
   static FirebaseFirestore get _db => FirebaseFirestore.instance;
 
   Stream<List<Santier>> get _santiereStream => _db
       .collection('santiere')
-      .where('creatDeUserId', isEqualTo: currentUser.uid)
       .snapshots()
       .map((s) => s.docs.map(Santier.fromDoc).toList());
 
@@ -223,6 +196,7 @@ class _PdfDataWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return StreamBuilder<List<Santier>>(
       stream: _santiereStream,
       builder: (context, santierSnap) {
@@ -235,16 +209,12 @@ class _PdfDataWrapper extends StatelessWidget {
             }
             if (santierSnap.hasError) {
               return Center(
-                child: Text('Eroare: ${santierSnap.error}'),
+                child: Text('${l.translate('eroare')}: ${santierSnap.error}'), // era: 'Eroare: ...'
               );
             }
-
-            final santiere = santierSnap.data ?? [];
-            final comenzi = comenziSnap.data ?? [];
-
             return CombinedPdfPage(
-              santiere: santiere,
-              comenzi: comenzi,
+              santiere: santierSnap.data ?? [],
+              comenzi:  comenziSnap.data ?? [],
             );
           },
         );

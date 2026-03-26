@@ -1,51 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// ─── ComandaStatus ────────────────────────────────────────────────────────────
-
 enum ComandaStatus {
   pending,
   aprobat,
   respins;
 
-  String get value {
-    switch (this) {
-      case ComandaStatus.pending:
-        return 'pending';
-      case ComandaStatus.aprobat:
-        return 'aprobat';
-      case ComandaStatus.respins:
-        return 'respins';
-    }
-  }
+  String get value => name;
 
-  static ComandaStatus fromString(String v) {
-    switch (v) {
-      case 'aprobat':
-        return ComandaStatus.aprobat;
-      case 'respins':
-        return ComandaStatus.respins;
-      default:
-        return ComandaStatus.pending;
-    }
-  }
+  static ComandaStatus fromString(String v) => switch (v) {
+    'aprobat' => ComandaStatus.aprobat,
+    'respins' => ComandaStatus.respins,
+    _         => ComandaStatus.pending,
+  };
 
-  String get displayLabel {
-    switch (this) {
-      case ComandaStatus.pending:
-        return 'În așteptare';
-      case ComandaStatus.aprobat:
-        return 'Aprobat';
-      case ComandaStatus.respins:
-        return 'Respins';
-    }
-  }
+  String get displayLabel => switch (this) {
+    ComandaStatus.pending => 'În așteptare',
+    ComandaStatus.aprobat => 'Aprobat',
+    ComandaStatus.respins => 'Respins',
+  };
 }
 
-// ─── ComandaVizibilitate — derived display category ───────────────────────────
-
 enum ComandaVizibilitate { activActiv, activPlanificat, neaprobatPending }
-
-// ─── Comanda ──────────────────────────────────────────────────────────────────
 
 class Comanda {
   final String id;
@@ -86,37 +61,34 @@ class Comanda {
     required this.updatedAt,
   });
 
-  /// Derived display category (Activ / Planificat / Pending).
   ComandaVizibilitate get vizibilitate {
-    if (status != ComandaStatus.aprobat) {
-      return ComandaVizibilitate.neaprobatPending;
-    }
-    final now = DateTime.now();
-    if (dataStart.isAfter(now)) return ComandaVizibilitate.activPlanificat;
-    return ComandaVizibilitate.activActiv;
+    if (status != ComandaStatus.aprobat) return ComandaVizibilitate.neaprobatPending;
+    return dataStart.isAfter(DateTime.now())
+        ? ComandaVizibilitate.activPlanificat
+        : ComandaVizibilitate.activActiv;
   }
 
   factory Comanda.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
+    DateTime ts(String key) => (d[key] as Timestamp).toDate();
     return Comanda(
       id:                  doc.id,
       santierId:           d['santierId']           as String,
       santierNume:         d['santierNume']         as String,
-      santierDataIncepere: (d['santierDataIncepere'] as Timestamp).toDate(),
+      santierDataIncepere: ts('santierDataIncepere'),
       vehicleId:           d['vehicleId']           as String,
       vehicleModel:        d['vehicleModel']        as String,
       vehicleClasa:        d['vehicleClasa']        as String,
-      dataStart:           (d['dataStart']  as Timestamp).toDate(),
-      dataFinal:           (d['dataFinal']  as Timestamp).toDate(),
-      status:              ComandaStatus.fromString(
-          d['status'] as String? ?? 'pending'),
+      dataStart:           ts('dataStart'),
+      dataFinal:           ts('dataFinal'),
+      status:              ComandaStatus.fromString(d['status'] as String? ?? 'pending'),
       creatDeUserId:       d['creatDeUserId']       as String,
       creatDeNume:         d['creatDeNume']         as String,
       motivRespingere:     d['motivRespingere']     as String?,
       aprobatDeUserId:     d['aprobatDeUserId']     as String?,
       note:                d['note']                as String?,
-      createdAt:           (d['createdAt']  as Timestamp).toDate(),
-      updatedAt:           (d['updatedAt']  as Timestamp).toDate(),
+      createdAt:           ts('createdAt'),
+      updatedAt:           ts('updatedAt'),
     );
   }
 }

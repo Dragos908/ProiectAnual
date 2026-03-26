@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
+import '/app_localizations.dart';
 import '/approval_theme.dart';
 import '/models/user.dart';
 import '/models/santier_model.dart';
@@ -11,9 +12,6 @@ import 'santier_detail_page.dart';
 
 final _dateFmt = DateFormat('dd.MM.yyyy');
 
-// =============================================================================
-// SantiereListPage
-// =============================================================================
 
 class SantiereListPage extends StatefulWidget {
   final User currentUser;
@@ -32,9 +30,8 @@ class _SantiereListPageState extends State<SantiereListPage> {
 
   sf.SantiereFilter _filter = const sf.SantiereFilter();
 
-  // Userul simplu vede doar propriile santiere.
   Stream<List<Santier>> get _stream =>
-      SantierService.streamByUser(widget.currentUser.uid);
+      SantierService.streamAll();
 
   void _scrollToGroup(SantierStatus status) {
     final ctx = _groupKeys[status]?.currentContext;
@@ -51,14 +48,10 @@ class _SantiereListPageState extends State<SantiereListPage> {
       backgroundColor: Colors.transparent,
       builder: (_) => _CreateSantierSheet(
         currentUser: widget.currentUser,
-        onCreated: (santierId) {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (_) => SantierDetailPage(
-              santierId: santierId,
-              currentUser: widget.currentUser,
-            ),
-          ));
-        },
+        onCreated: (id) => Navigator.push(context, MaterialPageRoute(
+          builder: (_) => SantierDetailPage(
+              santierId: id, currentUser: widget.currentUser),
+        )),
       ),
     );
   }
@@ -72,6 +65,14 @@ class _SantiereListPageState extends State<SantiereListPage> {
     );
     if (result != null) setState(() => _filter = result);
   }
+
+  void _navigateToDetail(String santierId) => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => SantierDetailPage(
+          santierId: santierId, currentUser: widget.currentUser),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +96,7 @@ class _SantiereListPageState extends State<SantiereListPage> {
                   Icon(Icons.cloud_off_outlined,
                       size: 48, color: ApprovalTheme.errorColor(context)),
                   const SizedBox(height: 12),
-                  Text('Eroare la încărcare: ${snapshot.error}',
+                  Text('${AppLocalizations.of(context).loadError}: ${snapshot.error}',
                       style: ApprovalTheme.textBody(context),
                       textAlign: TextAlign.center),
                 ]),
@@ -103,58 +104,42 @@ class _SantiereListPageState extends State<SantiereListPage> {
             );
           }
 
-          final all = snapshot.data ?? [];
-          final displayed = _filter.apply(all);
+          final displayed = _filter.apply(snapshot.data ?? []);
 
-          return Column(
-            children: [
-              _StickyHeader(
-                filter: _filter,
-                onAnchorTap: _scrollToGroup,
-                onFilterTap: _openFilterSheet,
+          return Column(children: [
+            _StickyHeader(
+              filter: _filter,
+              onAnchorTap: _scrollToGroup,
+              onFilterTap: _openFilterSheet,
+            ),
+            Expanded(
+              child: displayed.isEmpty
+                  ? Center(child: Text(AppLocalizations.of(context).noSantiere,
+                  style: ApprovalTheme.textBody(context)))
+                  : ListView(
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).padding.bottom + 8),
+                children: [
+                  for (final status in SantierStatus.values)
+                    if (displayed.any((s) => s.status == status)) ...[
+                      _GroupHeader(key: _groupKeys[status], status: status),
+                      for (final santier
+                      in displayed.where((s) => s.status == status))
+                        _SantierCard(
+                          santier: santier,
+                          currentUser: widget.currentUser,
+                          onTap: () => _navigateToDetail(santier.id),
+                        ),
+                    ],
+                ],
               ),
-              Expanded(
-                child: displayed.isEmpty
-                    ? Center(
-                    child: Text('Nu există șantiere.',
-                        style: ApprovalTheme.textBody(context)))
-                    : ListView(
-                  padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).padding.bottom + 8),
-                  children: [
-                    for (final status in SantierStatus.values)
-                      if (displayed.any((s) => s.status == status)) ...[
-                        _GroupHeader(
-                            key: _groupKeys[status], status: status),
-                        for (final santier
-                        in displayed.where((s) => s.status == status))
-                          _SantierCard(
-                            santier: santier,
-                            currentUser: widget.currentUser,
-                            onTap: () {
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (_) => SantierDetailPage(
-                                  santierId: santier.id,
-                                  currentUser: widget.currentUser,
-                                ),
-                              ));
-                            },
-                          ),
-                      ],
-                  ],
-                ),
-              ),
-            ],
-          );
+            ),
+          ]);
         },
       ),
     );
   }
 }
-
-// =============================================================================
-// _StickyHeader
-// =============================================================================
 
 class _StickyHeader extends StatelessWidget {
   final sf.SantiereFilter filter;
@@ -174,19 +159,19 @@ class _StickyHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
       child: Row(children: [
         Expanded(child: _AnchorButton(
-          label: 'Activi',
+          label: AppLocalizations.of(context).santiereActivi,
           color: const Color(0xFF1A6B3C),
           onTap: () => onAnchorTap(SantierStatus.activ),
         )),
         const SizedBox(width: 6),
         Expanded(child: _AnchorButton(
-          label: 'Suspendați',
+          label: AppLocalizations.of(context).santiereSuspendati,
           color: ApprovalTheme.errorColor(context),
           onTap: () => onAnchorTap(SantierStatus.suspendat),
         )),
         const SizedBox(width: 6),
         Expanded(child: _AnchorButton(
-          label: 'Arhivați',
+          label: AppLocalizations.of(context).santiereArhivati,
           color: ApprovalTheme.textSecondary(context),
           onTap: () => onAnchorTap(SantierStatus.arhivat),
         )),
@@ -201,8 +186,7 @@ class _AnchorButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _AnchorButton(
-      {required this.label, required this.color, required this.onTap});
+  const _AnchorButton({required this.label, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) => OutlinedButton(
@@ -212,8 +196,7 @@ class _AnchorButton extends StatelessWidget {
       foregroundColor: color,
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       shape: RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.circular(ApprovalTheme.radiusSmall)),
+          borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall)),
     ),
     child: Text(label,
         style: TextStyle(fontSize: 11, color: color),
@@ -231,9 +214,10 @@ class _FilterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = filter.isActive;
-    final color = active
+    final color  = active
         ? Theme.of(context).colorScheme.primary
         : ApprovalTheme.textSecondary(context);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -242,12 +226,10 @@ class _FilterButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             side: BorderSide(color: color, width: 1.4),
             foregroundColor: color,
-            padding:
-            const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
             minimumSize: Size.zero,
             shape: RoundedRectangleBorder(
-                borderRadius:
-                BorderRadius.circular(ApprovalTheme.radiusSmall)),
+                borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall)),
           ),
           child: Icon(Icons.filter_list, size: 18, color: color),
         ),
@@ -260,8 +242,7 @@ class _FilterButton extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    width: 1.5),
+                    color: Theme.of(context).scaffoldBackgroundColor, width: 1.5),
               ),
             ),
           ),
@@ -270,33 +251,27 @@ class _FilterButton extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// _GroupHeader
-// =============================================================================
-
 class _GroupHeader extends StatelessWidget {
   final SantierStatus status;
   const _GroupHeader({super.key, required this.status});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-      child: Text(
-        status.displayLabel.toUpperCase(),
-        style: ApprovalTheme.textSmall(context).copyWith(
-          fontWeight: FontWeight.bold,
-          color: _statusColor(context, status),
-          letterSpacing: 1.2,
-        ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+    child: Text(
+      switch (status) {
+        SantierStatus.activ     => AppLocalizations.of(context).translate('statusActiv'),
+        SantierStatus.suspendat => AppLocalizations.of(context).translate('statusSuspendat'),
+        SantierStatus.arhivat   => AppLocalizations.of(context).translate('statusArhivat'),
+      }.toUpperCase(),
+      style: ApprovalTheme.textSmall(context).copyWith(
+        fontWeight: FontWeight.bold,
+        color: _statusColor(context, status),
+        letterSpacing: 1.2,
       ),
-    );
-  }
+    ),
+  );
 }
-
-// =============================================================================
-// _SantierCard
-// =============================================================================
 
 class _SantierCard extends StatelessWidget {
   final Santier santier;
@@ -335,47 +310,39 @@ class _SantierCard extends StatelessWidget {
                 width: 3, height: 44,
                 margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(
-                  color: barColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                    color: barColor, borderRadius: BorderRadius.circular(2)),
               ),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(santier.denumire,
-                        style: ApprovalTheme.textTitle(context),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 2),
-                    Row(children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 11,
-                          color: ApprovalTheme.textSecondary(context)),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          '${santier.locatie} · ${santier.creatDeNume}',
-                          style: ApprovalTheme.textSmall(context),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 2),
-                    Row(children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 11,
-                          color: ApprovalTheme.textSecondary(context)),
-                      const SizedBox(width: 2),
-                      Text(
-                        _formatDateRange(
-                            santier.dataIncepere, santier.dataFinalizare),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(santier.denumire,
+                      style: ApprovalTheme.textTitle(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Row(children: [
+                    Icon(Icons.location_on_outlined,
+                        size: 11, color: ApprovalTheme.textSecondary(context)),
+                    const SizedBox(width: 2),
+                    Expanded(
+                      child: Text(
+                        '${santier.locatie} · ${santier.creatDeNume}',
                         style: ApprovalTheme.textSmall(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ]),
-                  ],
-                ),
+                    ),
+                  ]),
+                  const SizedBox(height: 2),
+                  Row(children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 11, color: ApprovalTheme.textSecondary(context)),
+                    const SizedBox(width: 2),
+                    Text(
+                      _formatDateRange(santier.dataIncepere, santier.dataFinalizare, AppLocalizations.of(context)),
+                      style: ApprovalTheme.textSmall(context),
+                    ),
+                  ]),
+                ]),
               ),
               const SizedBox(width: 8),
               _StatusBadge(status: santier.status),
@@ -387,10 +354,6 @@ class _SantierCard extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// _StatusBadge
-// =============================================================================
-
 class _StatusBadge extends StatelessWidget {
   final SantierStatus status;
   const _StatusBadge({required this.status});
@@ -401,32 +364,33 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       decoration: ApprovalTheme.badgeDecoration(color),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Text(status.displayLabel, style: ApprovalTheme.badgeTextStyle(color)),
+      child: Text(
+        switch (status) {
+          SantierStatus.activ     => AppLocalizations.of(context).translate('statusActiv'),
+          SantierStatus.suspendat => AppLocalizations.of(context).translate('statusSuspendat'),
+          SantierStatus.arhivat   => AppLocalizations.of(context).translate('statusArhivat'),
+        },
+        style: ApprovalTheme.badgeTextStyle(color),
+      ),
     );
   }
 }
-
-// =============================================================================
-// _CreateSantierSheet
-// =============================================================================
 
 class _CreateSantierSheet extends StatefulWidget {
   final User currentUser;
   final void Function(String santierId) onCreated;
 
-  const _CreateSantierSheet(
-      {required this.currentUser, required this.onCreated});
+  const _CreateSantierSheet({required this.currentUser, required this.onCreated});
 
   @override
   State<_CreateSantierSheet> createState() => _CreateSantierSheetState();
 }
 
 class _CreateSantierSheetState extends State<_CreateSantierSheet> {
-  final _formKey        = GlobalKey<FormState>();
-  final _denumireCtrl   = TextEditingController();
-  final _locatieCtrl    = TextEditingController();
-  DateTime? _dataIncepere;
-  DateTime? _dataFinalizare;
+  final _formKey      = GlobalKey<FormState>();
+  final _denumireCtrl = TextEditingController();
+  final _locatieCtrl  = TextEditingController();
+  DateTime? _dataIncepere, _dataFinalizare;
   bool _loading = false;
 
   @override
@@ -441,16 +405,16 @@ class _CreateSantierSheetState extends State<_CreateSantierSheet> {
     required DateTime? firstDate,
     required void Function(DateTime) onPicked,
   }) async {
-    final effectiveFirst = firstDate ?? DateTime(2000);
-    final now = DateTime.now();
-    final effectiveInitial = initial != null
-        ? (initial.isBefore(effectiveFirst) ? effectiveFirst : initial)
-        : (now.isBefore(effectiveFirst) ? effectiveFirst : now);
+    final first   = firstDate ?? DateTime(2000);
+    final now     = DateTime.now();
+    final initial0 = initial != null
+        ? (initial.isBefore(first) ? first : initial)
+        : (now.isBefore(first) ? first : now);
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: effectiveInitial,
-      firstDate: effectiveFirst,
+      initialDate: initial0,
+      firstDate: first,
       lastDate: DateTime(2100),
     );
     if (picked != null) onPicked(picked);
@@ -458,105 +422,63 @@ class _CreateSantierSheetState extends State<_CreateSantierSheet> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    if (_dataIncepere != null &&
-        _dataFinalizare != null &&
+    if (_dataIncepere != null && _dataFinalizare != null &&
         _dataFinalizare!.isBefore(_dataIncepere!)) {
-      _showError('Data finalizare trebuie să fie >= data începere.');
+      _showError(AppLocalizations.of(context).dateFinalizareError);
       return;
     }
-
     setState(() => _loading = true);
     try {
       final id = await SantierService.createSantier(
-        denumire:      _denumireCtrl.text,
-        locatie:       _locatieCtrl.text,
-        dataIncepere:  _dataIncepere,
+        denumire:       _denumireCtrl.text,
+        locatie:        _locatieCtrl.text,
+        dataIncepere:   _dataIncepere,
         dataFinalizare: _dataFinalizare,
-        creatDeUserId: widget.currentUser.uid,
-        creatDeNume:   widget.currentUser.name,
+        creatDeUserId:  widget.currentUser.uid,
+        creatDeNume:    widget.currentUser.name,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Șantier creat cu succes.'),
+        content: Text(AppLocalizations.of(context).santierCreated),
         backgroundColor: ApprovalTheme.successColor(context),
       ));
       widget.onCreated(id);
     } on TimeoutException {
-      _showError('Timeout — verificați conexiunea și încercați din nou.');
+      _showError(AppLocalizations.of(context).timeoutError);
     } catch (e) {
-      _showError('Eroare: $e');
+      _showError('${AppLocalizations.of(context).eroare}: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: ApprovalTheme.errorColor(context),
-    ));
-  }
+  void _showError(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(msg), backgroundColor: ApprovalTheme.errorColor(context)),
+  );
 
   @override
   Widget build(BuildContext context) {
+    final l  = AppLocalizations.of(context);
     final mq = MediaQuery.of(context);
-    return Container(
-      constraints:
-      BoxConstraints(maxHeight: mq.size.height * 0.9 - mq.viewInsets.bottom),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+    return _BottomSheetContainer(
+      maxHeightFactor: 0.9,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const _SheetHandle(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(children: [
-            Text('Șantier nou', style: ApprovalTheme.textTitle(context)),
-            const Spacer(),
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close),
-            ),
-          ]),
-        ),
+        _SheetTitleRow(title: l.santierNou),
         const Divider(height: 1),
         Expanded(
           child: SingleChildScrollView(
-            padding:
-            EdgeInsets.fromLTRB(16, 16, 16, mq.viewInsets.bottom + 16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, mq.viewInsets.bottom + 16),
             child: Form(
               key: _formKey,
               child: Column(children: [
-                TextFormField(
-                  controller: _denumireCtrl,
-                  style: ApprovalTheme.textBody(context),
-                  decoration:
-                  ApprovalTheme.inputDecoration(context, 'Denumire')
-                      .copyWith(
-                    prefixIcon: Icon(Icons.business_outlined,
-                        color: ApprovalTheme.textSecondary(context), size: 20),
-                  ),
-                  validator: (v) =>
-                  (v == null || v.trim().length < 3) ? 'Minim 3 caractere.' : null,
-                ),
+                _NameField(controller: _denumireCtrl),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _locatieCtrl,
-                  style: ApprovalTheme.textBody(context),
-                  decoration:
-                  ApprovalTheme.inputDecoration(context, 'Locație')
-                      .copyWith(
-                    prefixIcon: Icon(Icons.location_on_outlined,
-                        color: ApprovalTheme.textSecondary(context), size: 20),
-                  ),
-                  validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Câmp obligatoriu.' : null,
-                ),
+                _LocationField(controller: _locatieCtrl),
                 const SizedBox(height: 12),
                 _DateField(
-                  label: 'Data începere',
+                  label: l.dataIncepere,
                   value: _dataIncepere,
                   onTap: () => _pickDate(
                     initial: _dataIncepere,
@@ -566,7 +488,7 @@ class _CreateSantierSheetState extends State<_CreateSantierSheet> {
                 ),
                 const SizedBox(height: 12),
                 _DateField(
-                  label: 'Data finalizare',
+                  label: l.dataFinalizare,
                   value: _dataFinalizare,
                   onTap: () => _pickDate(
                     initial: _dataFinalizare,
@@ -575,19 +497,7 @@ class _CreateSantierSheetState extends State<_CreateSantierSheet> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _loading ? null : _submit,
-                    style: ApprovalTheme.primaryButtonStyle(context),
-                    child: _loading
-                        ? const SizedBox(
-                        height: 20, width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                        : const Text('Creează'),
-                  ),
-                ),
+                _SubmitButton(loading: _loading, label: l.creaza, onPressed: _submit),
               ]),
             ),
           ),
@@ -597,16 +507,12 @@ class _CreateSantierSheetState extends State<_CreateSantierSheet> {
   }
 }
 
-// =============================================================================
-// EditSantierSheet — editare câmpuri de bază (fără schimbare status / delete)
-// =============================================================================
-
+// public — used from santier_detail_page
 class EditSantierSheet extends StatefulWidget {
   final Santier santier;
   final User currentUser;
 
-  const EditSantierSheet(
-      {super.key, required this.santier, required this.currentUser});
+  const EditSantierSheet({super.key, required this.santier, required this.currentUser});
 
   @override
   State<EditSantierSheet> createState() => _EditSantierSheetState();
@@ -616,11 +522,9 @@ class _EditSantierSheetState extends State<EditSantierSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _denumireCtrl;
   late final TextEditingController _locatieCtrl;
-  DateTime? _dataIncepere;
-  DateTime? _dataFinalizare;
+  DateTime? _dataIncepere, _dataFinalizare;
   bool _loading = false;
 
-  // Userul poate edita propriul șantier.
   bool get _canEdit => widget.santier.creatDeUserId == widget.currentUser.uid;
 
   @override
@@ -655,10 +559,9 @@ class _EditSantierSheetState extends State<EditSantierSheet> {
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    if (_dataIncepere != null &&
-        _dataFinalizare != null &&
+    if (_dataIncepere != null && _dataFinalizare != null &&
         _dataFinalizare!.isBefore(_dataIncepere!)) {
-      _showError('Data finalizare trebuie să fie >= data începere.');
+      _showError(AppLocalizations.of(context).dateFinalizareError);
       return;
     }
     setState(() => _loading = true);
@@ -674,90 +577,53 @@ class _EditSantierSheetState extends State<EditSantierSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Șantier actualizat.'),
+        content: Text(AppLocalizations.of(context).santierUpdated),
         backgroundColor: ApprovalTheme.successColor(context),
       ));
     } catch (e) {
-      _showError('Eroare: $e');
+      _showError('${AppLocalizations.of(context).eroare}: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: ApprovalTheme.errorColor(context),
-    ));
-  }
+  void _showError(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(msg), backgroundColor: ApprovalTheme.errorColor(context)),
+  );
 
   @override
   Widget build(BuildContext context) {
+    final l  = AppLocalizations.of(context);
     final mq = MediaQuery.of(context);
-    return Container(
-      constraints:
-      BoxConstraints(maxHeight: mq.size.height * 0.9 - mq.viewInsets.bottom),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+    return _BottomSheetContainer(
+      maxHeightFactor: 0.9,
       child: Column(children: [
         const _SheetHandle(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
-            Text('Editare șantier', style: ApprovalTheme.textTitle(context)),
+            Text(l.editSantier, style: ApprovalTheme.textTitle(context)),
             const Spacer(),
             _StatusBadge(status: widget.santier.status),
             const SizedBox(width: 8),
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close),
-            ),
+            IconButton(onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close)),
           ]),
         ),
         const Divider(height: 1),
         Expanded(
           child: SingleChildScrollView(
-            padding:
-            EdgeInsets.fromLTRB(16, 16, 16, mq.viewInsets.bottom + 16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, mq.viewInsets.bottom + 16),
             child: _canEdit
                 ? Form(
               key: _formKey,
               child: Column(children: [
-                TextFormField(
-                  controller: _denumireCtrl,
-                  style: ApprovalTheme.textBody(context),
-                  decoration:
-                  ApprovalTheme.inputDecoration(context, 'Denumire')
-                      .copyWith(
-                    prefixIcon: Icon(Icons.business_outlined,
-                        color: ApprovalTheme.textSecondary(context),
-                        size: 20),
-                  ),
-                  validator: (v) => (v == null || v.trim().length < 3)
-                      ? 'Minim 3 caractere.'
-                      : null,
-                ),
+                _NameField(controller: _denumireCtrl),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _locatieCtrl,
-                  style: ApprovalTheme.textBody(context),
-                  decoration:
-                  ApprovalTheme.inputDecoration(context, 'Locație')
-                      .copyWith(
-                    prefixIcon: Icon(Icons.location_on_outlined,
-                        color: ApprovalTheme.textSecondary(context),
-                        size: 20),
-                  ),
-                  validator: (v) =>
-                  (v == null || v.trim().isEmpty)
-                      ? 'Câmp obligatoriu.'
-                      : null,
-                ),
+                _LocationField(controller: _locatieCtrl),
                 const SizedBox(height: 12),
                 _DateField(
-                  label: 'Data începere',
+                  label: l.dataIncepere,
                   value: _dataIncepere,
                   onTap: () => _pickDate(
                     initial: _dataIncepere,
@@ -767,7 +633,7 @@ class _EditSantierSheetState extends State<EditSantierSheet> {
                 ),
                 const SizedBox(height: 12),
                 _DateField(
-                  label: 'Data finalizare',
+                  label: l.dataFinalizare,
                   value: _dataFinalizare,
                   onTap: () => _pickDate(
                     initial: _dataFinalizare,
@@ -776,23 +642,11 @@ class _EditSantierSheetState extends State<EditSantierSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _loading ? null : _save,
-                    style: ApprovalTheme.primaryButtonStyle(context),
-                    child: _loading
-                        ? const SizedBox(
-                        height: 20, width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                        : const Text('Salvează'),
-                  ),
-                ),
+                _SubmitButton(loading: _loading, label: l.save, onPressed: _save),
               ]),
             )
                 : Center(
-              child: Text('Nu ai permisiunea de a edita acest șantier.',
+              child: Text(l.noEditPermission,
                   style: ApprovalTheme.textBody(context),
                   textAlign: TextAlign.center),
             ),
@@ -803,10 +657,6 @@ class _EditSantierSheetState extends State<EditSantierSheet> {
   }
 }
 
-// =============================================================================
-// _FilterSheet — fără filtru după utilizator (simpleUser vede doar ale lui)
-// =============================================================================
-
 class _FilterSheet extends StatefulWidget {
   final sf.SantiereFilter currentFilter;
   const _FilterSheet({required this.currentFilter});
@@ -816,25 +666,23 @@ class _FilterSheet extends StatefulWidget {
 }
 
 class _FilterSheetState extends State<_FilterSheet> {
-  late SantierStatus? _status;
-  sf.DateTimeRange?   _perioadaCreare;
+  late SantierStatus?    _status;
+  sf.DateTimeRange?      _perioadaCreare;
 
   @override
   void initState() {
     super.initState();
-    _status        = widget.currentFilter.status;
+    _status         = widget.currentFilter.status;
     _perioadaCreare = widget.currentFilter.perioadaCreare;
   }
 
   Future<void> _pickDateRange() async {
-    final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
-      lastDate: now,
+      lastDate: DateTime.now(),
       initialDateRange: _perioadaCreare != null
-          ? DateTimeRange(
-          start: _perioadaCreare!.start, end: _perioadaCreare!.end)
+          ? DateTimeRange(start: _perioadaCreare!.start, end: _perioadaCreare!.end)
           : null,
     );
     if (picked != null) {
@@ -845,26 +693,22 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l  = AppLocalizations.of(context);
     final mq = MediaQuery.of(context);
-    return Container(
-      constraints: BoxConstraints(maxHeight: mq.size.height * 0.75),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+    return _BottomSheetContainer(
+      maxHeightFactor: 0.75,
       child: Column(children: [
         const _SheetHandle(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
-            Text('Filtru șantiere', style: ApprovalTheme.textTitle(context)),
+            Text(l.filtruSantiere, style: ApprovalTheme.textTitle(context)),
             const Spacer(),
             TextButton(
               onPressed: () => setState(() {
-                _status = null;
-                _perioadaCreare = null;
+                _status = null; _perioadaCreare = null;
               }),
-              child: const Text('Resetează'),
+              child: Text(l.reset),
             ),
           ]),
         ),
@@ -872,85 +716,45 @@ class _FilterSheetState extends State<_FilterSheet> {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _FilterDropdown<SantierStatus>(
-                    label: 'Status',
-                    value: _status,
-                    items: SantierStatus.values,
-                    itemLabel: (s) => s.displayLabel,
-                    onChanged: (v) => setState(() => _status = v),
-                  ),
-                  const SizedBox(height: 12),
-                  Text('Perioadă creare', style: ApprovalTheme.textBody(context)),
-                  const SizedBox(height: 6),
-                  InkWell(
-                    onTap: _pickDateRange,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                            color: ApprovalTheme.borderColor(context)),
-                        borderRadius: BorderRadius.circular(
-                            ApprovalTheme.radiusSmall),
-                        color: ApprovalTheme.surfaceBackground(context),
-                      ),
-                      child: Row(children: [
-                        Icon(Icons.date_range_outlined,
-                            size: 18,
-                            color: ApprovalTheme.textSecondary(context)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _perioadaCreare != null
-                                ? '${_dateFmt.format(_perioadaCreare!.start)} – '
-                                '${_dateFmt.format(_perioadaCreare!.end)}'
-                                : 'Orice dată',
-                            style: ApprovalTheme.textBody(context).copyWith(
-                              color: _perioadaCreare != null
-                                  ? null
-                                  : ApprovalTheme.textSecondary(context),
-                            ),
-                          ),
-                        ),
-                        if (_perioadaCreare != null)
-                          GestureDetector(
-                            onTap: () =>
-                                setState(() => _perioadaCreare = null),
-                            child: Icon(Icons.close,
-                                size: 16,
-                                color: ApprovalTheme.textSecondary(context)),
-                          ),
-                      ]),
-                    ),
-                  ),
-                ]),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _FilterDropdown<SantierStatus>(
+                label: l.translate('status'),
+                value: _status,
+                items: SantierStatus.values,
+                itemLabel: (s) => switch (s) {
+                  SantierStatus.activ     => l.translate('statusActiv'),
+                  SantierStatus.suspendat => l.translate('statusSuspendat'),
+                  SantierStatus.arhivat   => l.translate('statusArhivat'),
+                },
+                onChanged: (v) => setState(() => _status = v),
+              ),
+              const SizedBox(height: 12),
+              Text(l.perioadaCreare, style: ApprovalTheme.textBody(context)),
+              const SizedBox(height: 6),
+              _DateRangeTile(
+                value: _perioadaCreare,
+                onTap: _pickDateRange,
+                onClear: () => setState(() => _perioadaCreare = null),
+              ),
+            ]),
           ),
         ),
         Padding(
-          padding:
-          EdgeInsets.fromLTRB(16, 8, 16, 16 + mq.viewInsets.bottom),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + mq.viewInsets.bottom),
           child: SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                sf.SantiereFilter(
-                  status: _status,
-                  perioadaCreare: _perioadaCreare,
-                ),
-              ),
+              onPressed: () => Navigator.pop(context, sf.SantiereFilter(
+                status: _status, perioadaCreare: _perioadaCreare,
+              )),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                        ApprovalTheme.radiusMedium)),
+                    borderRadius: BorderRadius.circular(ApprovalTheme.radiusMedium)),
               ),
-              child: const Text('Aplică filtrul'),
+              child: Text(l.applyFilter),
             ),
           ),
         ),
@@ -959,10 +763,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   }
 }
 
-// =============================================================================
-// Reusable helpers
-// =============================================================================
-
+// Reusable Widgets
 class _FilterDropdown<T> extends StatelessWidget {
   final String label;
   final T? value;
@@ -971,11 +772,8 @@ class _FilterDropdown<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
 
   const _FilterDropdown({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.itemLabel,
-    required this.onChanged,
+    required this.label, required this.value,
+    required this.items, required this.itemLabel, required this.onChanged,
   });
 
   @override
@@ -986,16 +784,12 @@ class _FilterDropdown<T> extends StatelessWidget {
         labelText: label,
         labelStyle: ApprovalTheme.textBody(context),
         border: OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(ApprovalTheme.radiusSmall),
-          borderSide:
-          BorderSide(color: ApprovalTheme.borderColor(context)),
+          borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+          borderSide: BorderSide(color: ApprovalTheme.borderColor(context)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(ApprovalTheme.radiusSmall),
-          borderSide:
-          BorderSide(color: ApprovalTheme.borderColor(context)),
+          borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+          borderSide: BorderSide(color: ApprovalTheme.borderColor(context)),
         ),
         filled: true,
         fillColor: ApprovalTheme.surfaceBackground(context),
@@ -1006,11 +800,10 @@ class _FilterDropdown<T> extends StatelessWidget {
       items: [
         DropdownMenuItem<T>(
             value: null,
-            child: Text('Toate', style: ApprovalTheme.textBody(context))),
+            child: Text(AppLocalizations.of(context).all, style: ApprovalTheme.textBody(context))),
         ...items.map((item) => DropdownMenuItem<T>(
             value: item,
-            child: Text(itemLabel(item),
-                style: ApprovalTheme.textBody(context)))),
+            child: Text(itemLabel(item), style: ApprovalTheme.textBody(context)))),
       ],
       onChanged: onChanged,
     );
@@ -1037,13 +830,89 @@ class _SheetHandle extends StatelessWidget {
   );
 }
 
+class _SheetTitleRow extends StatelessWidget {
+  final String title;
+  const _SheetTitleRow({required this.title});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Row(children: [
+      Text(title, style: ApprovalTheme.textTitle(context)),
+      const Spacer(),
+      IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close)),
+    ]),
+  );
+}
+
+class _BottomSheetContainer extends StatelessWidget {
+  final double maxHeightFactor;
+  final Widget child;
+  const _BottomSheetContainer({required this.maxHeightFactor, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return Container(
+      constraints: BoxConstraints(
+          maxHeight: mq.size.height * maxHeightFactor - mq.viewInsets.bottom),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _NameField extends StatelessWidget {
+  final TextEditingController controller;
+  const _NameField({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return TextFormField(
+      controller: controller,
+      style: ApprovalTheme.textBody(context),
+      decoration: ApprovalTheme.inputDecoration(context, l.denumire).copyWith(
+        prefixIcon: Icon(Icons.business_outlined,
+            color: ApprovalTheme.textSecondary(context), size: 20),
+      ),
+      validator: (v) =>
+      (v == null || v.trim().length < 3) ? l.minThreeChars : null,
+    );
+  }
+}
+
+class _LocationField extends StatelessWidget {
+  final TextEditingController controller;
+  const _LocationField({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return TextFormField(
+      controller: controller,
+      style: ApprovalTheme.textBody(context),
+      decoration: ApprovalTheme.inputDecoration(context, l.locatie).copyWith(
+        prefixIcon: Icon(Icons.location_on_outlined,
+            color: ApprovalTheme.textSecondary(context), size: 20),
+      ),
+      validator: (v) =>
+      (v == null || v.trim().isEmpty) ? l.requiredField : null,
+    );
+  }
+}
+
 class _DateField extends StatelessWidget {
   final String label;
   final DateTime? value;
   final VoidCallback onTap;
 
-  const _DateField(
-      {required this.label, required this.value, required this.onTap});
+  const _DateField({required this.label, required this.value, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1055,15 +924,11 @@ class _DateField extends StatelessWidget {
           labelStyle: ApprovalTheme.textBody(context)
               .copyWith(color: ApprovalTheme.textSecondary(context)),
           border: OutlineInputBorder(
-              borderRadius:
-              BorderRadius.circular(ApprovalTheme.radiusSmall),
-              borderSide:
-              BorderSide(color: ApprovalTheme.borderColor(context))),
+              borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+              borderSide: BorderSide(color: ApprovalTheme.borderColor(context))),
           enabledBorder: OutlineInputBorder(
-              borderRadius:
-              BorderRadius.circular(ApprovalTheme.radiusSmall),
-              borderSide:
-              BorderSide(color: ApprovalTheme.borderColor(context))),
+              borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+              borderSide: BorderSide(color: ApprovalTheme.borderColor(context))),
           filled: true,
           fillColor: ApprovalTheme.surfaceBackground(context),
           prefixIcon: Icon(Icons.calendar_today_outlined,
@@ -1072,45 +937,103 @@ class _DateField extends StatelessWidget {
               color: ApprovalTheme.textSecondary(context)),
         ),
         child: Text(
-          value != null ? _dateFmt.format(value!) : 'Selectați data',
-          style: value != null
-              ? ApprovalTheme.textSmall(context)
-              : ApprovalTheme.textSmall(context)
-              .copyWith(color: ApprovalTheme.textSecondary(context)),
+          value != null ? _dateFmt.format(value!) : AppLocalizations.of(context).selectDate,
+          style: ApprovalTheme.textSmall(context).copyWith(
+            color: value != null ? null : ApprovalTheme.textSecondary(context),
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+class _SubmitButton extends StatelessWidget {
+  final bool loading;
+  final String label;
+  final VoidCallback onPressed;
 
-String _formatDateRange(DateTime? start, DateTime? end) {
-  if (start == null && end == null) return 'Dată nespecificată';
+  const _SubmitButton({
+    required this.loading, required this.label, required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: FilledButton(
+      onPressed: loading ? null : onPressed,
+      style: ApprovalTheme.primaryButtonStyle(context),
+      child: loading
+          ? const SizedBox(
+          height: 20, width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : Text(label),
+    ),
+  );
+}
+
+class _DateRangeTile extends StatelessWidget {
+  final sf.DateTimeRange? value;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DateRangeTile({required this.value, required this.onTap, required this.onClear});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: ApprovalTheme.borderColor(context)),
+          borderRadius: BorderRadius.circular(ApprovalTheme.radiusSmall),
+          color: ApprovalTheme.surfaceBackground(context),
+        ),
+        child: Row(children: [
+          Icon(Icons.date_range_outlined,
+              size: 18, color: ApprovalTheme.textSecondary(context)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value != null
+                  ? '${_dateFmt.format(value!.start)} – ${_dateFmt.format(value!.end)}'
+                  : AppLocalizations.of(context).oriceData,
+              style: ApprovalTheme.textBody(context).copyWith(
+                color: value != null ? null : ApprovalTheme.textSecondary(context),
+              ),
+            ),
+          ),
+          if (value != null)
+            GestureDetector(
+              onTap: onClear,
+              child: Icon(Icons.close,
+                  size: 16, color: ApprovalTheme.textSecondary(context)),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+// Helpers
+String _formatDateRange(DateTime? start, DateTime? end, AppLocalizations l) {
+  if (start == null && end == null) return l.dateUnspecified;
   if (start == null) return '– ${_dateFmt.format(end!)}';
-  if (end == null) return '${_dateFmt.format(start)} –';
+  if (end == null)   return '${_dateFmt.format(start)} –';
   return '${_dateFmt.format(start)} – ${_dateFmt.format(end)}';
 }
 
-Color _statusColor(BuildContext context, SantierStatus status) {
-  switch (status) {
-    case SantierStatus.activ:
-      return const Color(0xFF1A6B3C);
-    case SantierStatus.suspendat:
-      return ApprovalTheme.errorColor(context);
-    case SantierStatus.arhivat:
-      return ApprovalTheme.textSecondary(context);
-  }
-}
+Color _statusColor(BuildContext context, SantierStatus status) => switch (status) {
+  SantierStatus.activ     => const Color(0xFF1A6B3C),
+  SantierStatus.suspendat => ApprovalTheme.errorColor(context),
+  SantierStatus.arhivat   => ApprovalTheme.textSecondary(context),
+};
 
 Color _rowColor(BuildContext context, SantierStatus status) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
-  switch (status) {
-    case SantierStatus.activ:
-      return isDark ? const Color(0xFF1B3A24) : const Color(0xFFD4EDDA);
-    case SantierStatus.suspendat:
-      return isDark ? const Color(0xFF3D0000) : const Color(0xFFF8D7DA);
-    case SantierStatus.arhivat:
-      return isDark ? ApprovalTheme.cardBackground(context) : Colors.white;
-  }
+  return switch (status) {
+    SantierStatus.activ     => isDark ? const Color(0xFF1B3A24) : const Color(0xFFD4EDDA),
+    SantierStatus.suspendat => isDark ? const Color(0xFF3D0000) : const Color(0xFFF8D7DA),
+    SantierStatus.arhivat   => isDark ? ApprovalTheme.cardBackground(context) : Colors.white,
+  };
 }
